@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 import LandingPage from './pages/LandingPage';
+import AuthSplitPage from './pages/AuthSplitPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import VerifyPage from './pages/VerifyPage';
@@ -14,6 +15,7 @@ import OrgPreferences from './pages/OrgPreferences';
 import LogbookPage from './pages/LogbookPage';
 import MatchingPage from './pages/MatchingPage';
 import ProfilePage from './pages/ProfilePage';
+import AdminPage from './pages/AdminPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -62,6 +64,7 @@ function App() {
         />
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/auth" element={<PublicRoute><AuthSplitPage /></PublicRoute>} />
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
           <Route path="/verify" element={<VerifyPage />} />
@@ -71,6 +74,7 @@ function App() {
             <Route path="org-preferences" element={<OrgPreferences />} />
             <Route path="logbook" element={<LogbookPage />} />
             <Route path="matching" element={<MatchingPage />} />
+            <Route path="admin" element={<AdminPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
