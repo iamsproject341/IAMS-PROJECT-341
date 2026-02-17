@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -47,18 +48,19 @@ function App() {
           toastOptions={{
             className: 'toast-custom',
             style: {
-              background: '#132240',
-              color: '#e8ecf4',
+              background: '#152238',
+              color: '#edf0f7',
               border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: '10px',
+              borderRadius: '8px',
               fontSize: '0.875rem',
               fontFamily: "'DM Sans', sans-serif",
             },
-            success: { iconTheme: { primary: '#14b8a6', secondary: '#021a17' } },
+            success: { iconTheme: { primary: '#14b8a6', secondary: '#031c18' } },
             error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
           }}
         />
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
@@ -69,7 +71,7 @@ function App() {
             <Route path="matching" element={<MatchingPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </AuthProvider>
