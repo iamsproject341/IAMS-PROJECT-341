@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Users, BookOpen, Shuffle, ShieldCheck, ChevronDown } from 'lucide-react';
+import { ArrowRight, Users, BookOpen, Shuffle, ShieldCheck, ChevronDown, Clock, Globe, Award } from 'lucide-react';
 import { AIcon } from '../components/Logo';
 
 const SLIDES = [
@@ -59,7 +59,6 @@ export default function LandingPage() {
       <div className={`lp-main ${phase==='done'?'lp-main-visible':''}`}>
         <nav className="lp-nav">
           <div className="lp-nav-brand"><div className="lp-nav-icon"><AIcon size={14}/></div><span>AttachFlow</span></div>
-          <div className="lp-nav-links"><button onClick={()=>navigate('/login')}>Sign In</button><button className="lp-nav-cta" onClick={()=>navigate('/register')}>Get Started</button></div>
         </nav>
         <section className="lp-hero">
           <div className="lp-hero-slides">
@@ -70,8 +69,7 @@ export default function LandingPage() {
             <h1>Industrial Attachment,<br/>Simplified.</h1>
             <p>A centralized platform connecting students with organizations, automating placement matching, and digitizing the entire attachment workflow.</p>
             <div className="lp-hero-btns">
-              <button className="lp-btn-primary" onClick={()=>navigate('/register')}>Create Account <ArrowRight size={16}/></button>
-              <button className="lp-btn-outline" onClick={()=>navigate('/login')}>Sign In</button>
+              <button className="lp-btn-primary" onClick={()=>navigate('/auth')}>Get Started <ArrowRight size={16}/></button>
             </div>
           </div>
           <div className="lp-hero-indicators">{SLIDES.map((_,i)=><button key={i} className={`lp-indicator ${i===cs?'active':''}`} onClick={()=>{setCs(i);setSd('in');}}/>)}</div>
@@ -85,10 +83,41 @@ export default function LandingPage() {
           <RevealDiv className="lp-section-header"><h2>Built for every stakeholder</h2></RevealDiv>
           <div className="lp-roles-grid">{ROLES.map((r,i)=><RevealDiv key={i} delay={i*0.08} direction="left" className="lp-role-card"><div className="lp-role-num">0{i+1}</div><h3>{r.role}</h3><p>{r.desc}</p></RevealDiv>)}</div>
         </section>
-        <section className="lp-cta"><RevealDiv className="lp-cta-inner"><h2>Ready to get started?</h2><p>Join AttachFlow and streamline your industrial attachment experience.</p><button className="lp-btn-primary" onClick={()=>navigate('/register')}>Create Your Account <ArrowRight size={16}/></button></RevealDiv></section>
-        <footer className="lp-footer"><div className="lp-footer-inner"><div className="lp-nav-brand"><div className="lp-nav-icon" style={{width:24,height:24}}><AIcon size={12}/></div><span>AttachFlow</span></div><div className="lp-footer-text">&copy; {new Date().getFullYear()} AttachFlow. All rights reserved.</div></div></footer>
+
+        {/* Info section replacing the old CTA */}
+        <section className="lp-info">
+          <RevealDiv className="lp-section-header"><h2>Why AttachFlow?</h2><p>Designed specifically for the University of Botswana's industrial attachment process.</p></RevealDiv>
+          <div className="lp-info-grid">
+            <RevealDiv delay={0.05} className="lp-info-item">
+              <div className="lp-info-icon"><Clock size={20} strokeWidth={1.6}/></div>
+              <h3>Save Time</h3>
+              <p>Automate the tedious placement process. What used to take weeks now happens in minutes with our matching algorithm.</p>
+            </RevealDiv>
+            <RevealDiv delay={0.15} className="lp-info-item">
+              <div className="lp-info-icon"><Globe size={20} strokeWidth={1.6}/></div>
+              <h3>Fully Digital</h3>
+              <p>No more paper forms or manual tracking. Everything from preferences to logbooks is managed online.</p>
+            </RevealDiv>
+            <RevealDiv delay={0.25} className="lp-info-item">
+              <div className="lp-info-icon"><Award size={20} strokeWidth={1.6}/></div>
+              <h3>Better Outcomes</h3>
+              <p>Data-driven matching ensures students are placed where their skills align, leading to more productive attachments.</p>
+            </RevealDiv>
+          </div>
+        </section>
+
+        <footer className="lp-footer">
+          <div className="lp-footer-inner">
+            <div className="lp-footer-text">&copy; {new Date().getFullYear()} AttachFlow. All rights reserved.</div>
+          </div>
+        </footer>
       </div>
-      <style>{`
+      <style>{landingCSS}</style>
+    </div>
+  );
+}
+
+const landingCSS = `
 .lp-root{--serif:'Lora',Georgia,serif;--sans:'Manrope',-apple-system,sans-serif;--navy:#0b1520;--navy3:#152238;--teal:#14b8a6;--teal-dim:rgba(20,184,166,0.06);--bright:#e2e8f0;--mid:#8b9bb4;--dim:#4b6280;--line:rgba(255,255,255,0.06);background:var(--navy);min-height:100vh;overflow-x:hidden;color:var(--bright)}
 .lp-intro{position:fixed;inset:0;z-index:200;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .9s ease,transform .9s cubic-bezier(.4,0,.2,1)}.lp-intro-exit{opacity:0;transform:scale(1.08);pointer-events:none}
 .lp-intro-inner{display:flex;align-items:center;gap:18px;animation:introSlideUp .8s cubic-bezier(.16,1,.3,1) both}
@@ -104,10 +133,6 @@ export default function LandingPage() {
 .lp-nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:14px 36px;background:rgba(11,21,32,0.6);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .lp-nav-brand{display:flex;align-items:center;gap:8px;font-family:var(--serif);font-size:1rem;font-weight:600;color:white}
 .lp-nav-icon{width:30px;height:30px;border-radius:7px;background:var(--teal);display:flex;align-items:center;justify-content:center;color:#031c18}
-.lp-nav-links{display:flex;align-items:center;gap:5px}
-.lp-nav-links button{padding:7px 16px;background:none;border:none;color:rgba(255,255,255,0.6);font-family:var(--sans);font-size:.82rem;font-weight:500;cursor:pointer;transition:color .2s}
-.lp-nav-links button:hover{color:white}
-.lp-nav-cta{background:var(--teal)!important;color:#031c18!important;border-radius:6px;font-weight:600!important}
 .lp-hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden}
 .lp-hero-slides{position:absolute;inset:0}
 .lp-slide{position:absolute;inset:0;opacity:0;transform:scale(1.06);transition:opacity .8s ease,transform 5s ease}
@@ -120,8 +145,6 @@ export default function LandingPage() {
 .lp-hero-btns{display:flex;gap:10px}
 .lp-btn-primary{display:inline-flex;align-items:center;gap:7px;padding:12px 24px;background:var(--teal);color:#031c18;border:none;border-radius:6px;font-family:var(--sans);font-size:.85rem;font-weight:600;cursor:pointer;transition:opacity .2s,transform .2s}
 .lp-btn-primary:hover{opacity:.9;transform:translateY(-1px)}
-.lp-btn-outline{padding:12px 24px;background:rgba(255,255,255,0.04);color:var(--bright);border:1px solid rgba(255,255,255,0.1);border-radius:6px;font-family:var(--sans);font-size:.85rem;font-weight:500;cursor:pointer;transition:background .2s}
-.lp-btn-outline:hover{background:rgba(255,255,255,0.08)}
 .lp-hero-indicators{position:absolute;bottom:72px;left:36px;z-index:10;display:flex;gap:7px}
 .lp-indicator{width:28px;height:3px;border-radius:2px;background:rgba(255,255,255,0.18);border:none;cursor:pointer;transition:all .3s ease}
 .lp-indicator.active{width:44px;background:var(--teal)}
@@ -146,16 +169,20 @@ export default function LandingPage() {
 .lp-role-num{font-family:var(--serif);font-size:1.6rem;font-weight:600;color:rgba(20,184,166,0.12);margin-bottom:8px;line-height:1}
 .lp-role-card h3{font-family:var(--sans);font-size:.85rem;font-weight:600;color:var(--bright);margin-bottom:5px}
 .lp-role-card p{font-family:var(--sans);font-size:.76rem;color:var(--mid);line-height:1.6}
-.lp-cta{padding:72px 36px}
-.lp-cta-inner{max-width:1020px;margin:0 auto;text-align:center;padding:48px 36px;background:var(--navy3);border:1px solid var(--line);border-radius:14px}
-.lp-cta-inner h2{font-family:var(--serif);font-size:1.7rem;font-weight:600;color:var(--bright);margin-bottom:8px}
-.lp-cta-inner p{font-family:var(--sans);color:var(--mid);margin-bottom:22px;font-size:.9rem}
+
+/* Info section */
+.lp-info{padding:72px 36px;max-width:1020px;margin:0 auto}
+.lp-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.lp-info-item{text-align:center;padding:32px 24px}
+.lp-info-icon{width:48px;height:48px;border-radius:50%;background:var(--teal-dim);border:1px solid rgba(20,184,166,0.1);display:flex;align-items:center;justify-content:center;color:var(--teal);margin:0 auto 16px}
+.lp-info-item h3{font-family:var(--sans);font-size:.9rem;font-weight:600;color:var(--bright);margin-bottom:8px}
+.lp-info-item p{font-family:var(--sans);font-size:.8rem;color:var(--mid);line-height:1.65}
+
+/* Footer - centered, no logo */
 .lp-footer{padding:24px 36px;border-top:1px solid var(--line)}
-.lp-footer-inner{max-width:1020px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+.lp-footer-inner{max-width:1020px;margin:0 auto;display:flex;align-items:center;justify-content:center}
 .lp-footer-text{font-family:var(--sans);font-size:.7rem;color:var(--dim)}
-@media(max-width:900px){.lp-features-grid{grid-template-columns:1fr}.lp-roles-grid{grid-template-columns:1fr 1fr}.lp-hero-content h1{font-size:2.2rem}.lp-nav,.lp-hero-content,.lp-features,.lp-roles,.lp-cta,.lp-footer{padding-left:18px;padding-right:18px}.lp-hero-indicators{left:18px}}
+
+@media(max-width:900px){.lp-features-grid{grid-template-columns:1fr}.lp-roles-grid{grid-template-columns:1fr 1fr}.lp-info-grid{grid-template-columns:1fr}.lp-hero-content h1{font-size:2.2rem}.lp-nav,.lp-hero-content,.lp-features,.lp-roles,.lp-info,.lp-footer{padding-left:18px;padding-right:18px}.lp-hero-indicators{left:18px}}
 @media(max-width:600px){.lp-roles-grid{grid-template-columns:1fr}.lp-hero-content h1{font-size:1.8rem}.lp-hero-btns{flex-direction:column}.lp-footer-inner{flex-direction:column;gap:10px;text-align:center}.lp-intro-text h1{font-size:1.8rem}.lp-intro-icon{width:50px;height:50px}.lp-intro-inner{gap:12px}}
-      `}</style>
-    </div>
-  );
-}
+`;
