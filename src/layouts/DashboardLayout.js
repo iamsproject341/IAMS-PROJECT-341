@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
+import PageTransition from '../components/PageTransition';
 import {
   LayoutDashboard, Settings, LogOut, BookOpen, Users, Shuffle,
-  Menu, X, GraduationCap, Building2, Bell,
+  Menu, X, GraduationCap, Building2, Bell, UserPlus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -41,6 +42,7 @@ export default function DashboardLayout() {
     coordinator: [
       { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/dashboard/matching', label: 'Matching', icon: Shuffle },
+      { path: '/dashboard/admin', label: 'Manage Accounts', icon: UserPlus },
       { path: '/dashboard/profile', label: 'Profile', icon: Users },
     ],
     supervisor: [
@@ -55,23 +57,17 @@ export default function DashboardLayout() {
 
   return (
     <div className="app-layout">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            zIndex: 45, display: 'block',
-          }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 45 }}
         />
       )}
 
-      {/* Sidebar */}
       <aside className={`app-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
           <Logo size="md" />
         </div>
-
         <nav className="sidebar-nav">
           <div className="sidebar-section-label">Navigation</div>
           {items.map((item) => {
@@ -81,24 +77,18 @@ export default function DashboardLayout() {
               <button
                 key={item.path}
                 className={`sidebar-link ${isActive ? 'active' : ''}`}
-                onClick={() => {
-                  navigate(item.path);
-                  setSidebarOpen(false);
-                }}
+                onClick={() => { navigate(item.path); setSidebarOpen(false); }}
               >
                 <Icon size={18} />
                 {item.label}
               </button>
             );
           })}
-
           <div className="sidebar-section-label" style={{ marginTop: 12 }}>Account</div>
           <button className="sidebar-link" onClick={handleSignOut}>
-            <LogOut size={18} />
-            Sign Out
+            <LogOut size={18} /> Sign Out
           </button>
         </nav>
-
         <div className="sidebar-user">
           <div className="sidebar-avatar">{initials}</div>
           <div className="sidebar-user-info">
@@ -108,15 +98,9 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="app-main">
         <header className="app-topbar">
-          <button
-            className="btn btn-ghost"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={{ display: 'none' }}
-            id="mobile-menu-btn"
-          >
+          <button className="btn btn-ghost" onClick={() => setSidebarOpen(!sidebarOpen)} style={{ display: 'none' }} id="mobile-menu-btn">
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -126,16 +110,14 @@ export default function DashboardLayout() {
             {role === 'supervisor' && 'Supervisor Portal'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button className="btn btn-ghost" style={{ position: 'relative' }}>
-              <Bell size={18} />
-            </button>
-            <div className="sidebar-avatar" style={{ width: 32, height: 32, fontSize: '0.7rem' }}>
-              {initials}
-            </div>
+            <button className="btn btn-ghost" style={{ position: 'relative' }}><Bell size={18} /></button>
+            <div className="sidebar-avatar" style={{ width: 32, height: 32, fontSize: '0.7rem' }}>{initials}</div>
           </div>
         </header>
         <main className="app-content">
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </main>
       </div>
 
