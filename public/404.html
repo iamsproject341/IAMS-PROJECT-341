@@ -4,15 +4,16 @@
   <meta charset="utf-8">
   <title>AttachFlow</title>
   <script>
-    // GitHub Pages SPA redirect for BrowserRouter
-    // Converts path to query string, index.html reads it back
-    var repo = '/IAMS-PROJECT-341';
-    var fullPath = window.location.pathname.replace(repo, '');
-    var query = window.location.search;
-    var hash = window.location.hash;
-    // Redirect to index with path stored in query param
-    window.location.replace(
-      window.location.origin + repo + '/?p=' + encodeURIComponent(fullPath + query + hash)
+    // Single Page App redirect for GitHub Pages
+    // https://github.com/rafgraph/spa-github-pages
+    var pathSegmentsToKeep = 1; // /IAMS-PROJECT-341 = 1 segment
+    var l = window.location;
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.hash
     );
   </script>
 </head>
