@@ -1,0 +1,197 @@
+/* ============================================
+   PAGE TRANSITIONS - Sweep reveal effect
+   ============================================ */
+
+.page-transition {
+  position: relative;
+}
+
+.page-transition.entering {
+  animation: pageEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-transition.exiting {
+  animation: pageExit 0.3s ease both;
+}
+
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateX(30px) scale(0.98);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes pageExit {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.98);
+    filter: blur(2px);
+  }
+}
+
+/* Sweep overlay that wipes across screen */
+.page-sweep {
+  position: fixed;
+  top: 0;
+  left: 250px;
+  right: 0;
+  bottom: 0;
+  background: var(--accent);
+  z-index: 30;
+  pointer-events: none;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.page-sweep.exiting {
+  animation: sweepIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.page-sweep.entering {
+  animation: sweepOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.05s both;
+}
+
+@keyframes sweepIn {
+  0% { transform: scaleX(0); opacity: 0.15; }
+  100% { transform: scaleX(1); opacity: 0.08; }
+}
+
+@keyframes sweepOut {
+  0% { transform: scaleX(1); transform-origin: right; opacity: 0.08; }
+  100% { transform: scaleX(0); transform-origin: right; opacity: 0; }
+}
+
+/* ============================================
+   ACTION CARDS - Clickable cards with hover
+   ============================================ */
+
+.action-card {
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.action-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(20, 184, 166, 0.08);
+}
+
+.action-card:active {
+  transform: translateY(0);
+}
+
+/* ============================================
+   SIDEBAR LINK ACTIVE INDICATOR
+   ============================================ */
+
+.sidebar-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transition: transform 0.25s ease;
+}
+
+.sidebar-link:hover::after {
+  transform: scaleX(1);
+}
+
+.sidebar-link.active::after {
+  display: none;
+}
+
+/* ============================================
+   CARD ENTRY ANIMATIONS
+   ============================================ */
+
+.stat-card {
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stat-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ============================================
+   TABLE ROW HOVER ENHANCEMENT
+   ============================================ */
+
+tr {
+  transition: background 0.2s ease;
+}
+
+tr:hover td {
+  background: rgba(20, 184, 166, 0.03);
+}
+
+/* ============================================
+   CHECKBOX ITEM INTERACTIONS
+   ============================================ */
+
+.checkbox-item {
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.checkbox-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.checkbox-item.selected {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 12px rgba(20, 184, 166, 0.1);
+}
+
+/* ============================================
+   BUTTON PRESS EFFECT
+   ============================================ */
+
+.btn {
+  transition: all 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ============================================
+   FORM INPUT FOCUS GLOW
+   ============================================ */
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-light), 0 2px 8px rgba(20, 184, 166, 0.06);
+}
+
+/* ============================================
+   RESPONSIVE SWEEP
+   ============================================ */
+
+@media (max-width: 768px) {
+  .page-sweep {
+    left: 0;
+  }
+}
