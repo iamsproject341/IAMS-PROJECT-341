@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -34,9 +35,8 @@ export default function RegisterPage() {
     return Object.keys(e).length === 0;
   }
 
-  function clearError(field) { setErrors(p => ({...p, [field]: ''})); }
+  function clearError(field) { setErrors(p => ({ ...p, [field]: '' })); }
 
-  // Only allow digits in student ID, no negatives
   function handleStudentIdChange(val) {
     const cleaned = val.replace(/[^0-9]/g, '').slice(0, 9);
     setStudentId(cleaned);
@@ -49,7 +49,22 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await signUp({ email, password, fullName, role: 'student' });
-      toast.success('Account created! You can now sign in.');
+      // Show success toast with email check message
+      toast.success(
+        (t) => (
+          <div>
+            <strong>Account created!</strong>
+            <p style={{ margin: '4px 0 0', fontSize: '0.82rem', opacity: 0.85 }}>
+              Check your email to verify your account.
+            </p>
+          </div>
+        ),
+        { duration: 5000 }
+      );
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
     } catch (err) {
       toast.error(err.message || 'Registration failed');
     } finally { setLoading(false); }
@@ -107,9 +122,16 @@ export default function RegisterPage() {
               </div>
               <div className="form-group">
                 <label className="form-label">Confirm Password <span style={{ color: 'var(--error)' }}>*</span></label>
-                <input type="password" className={`form-input ${errors.confirmPw ? 'input-error' : ''}`}
-                  placeholder="Repeat password" value={confirmPw}
-                  onChange={(e) => { setConfirmPw(e.target.value); clearError('confirmPw'); }} autoComplete="new-password" />
+                <div style={{ position: 'relative' }}>
+                  <input type={showConfirmPw ? 'text' : 'password'} className={`form-input ${errors.confirmPw ? 'input-error' : ''}`}
+                    placeholder="Repeat password" value={confirmPw}
+                    onChange={(e) => { setConfirmPw(e.target.value); clearError('confirmPw'); }}
+                    style={{ paddingRight: 38 }} autoComplete="new-password" />
+                  <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)}
+                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex' }}>
+                    {showConfirmPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
                 {errors.confirmPw && <div className="form-error">{errors.confirmPw}</div>}
               </div>
             </div>
