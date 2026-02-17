@@ -43,7 +43,7 @@ function PublicRoute({ children }) {
 function App() {
   return (
     <AuthProvider>
-      <Router basename="/IAMS-PROJECT-341">
+      <Router basename={process.env.PUBLIC_URL}>
         <Toaster
           position="top-right"
           toastOptions={{
