@@ -4,20 +4,15 @@
   <meta charset="utf-8">
   <title>AttachFlow</title>
   <script>
-    // GitHub Pages SPA redirect hack
-    // When Supabase redirects to /IAMS-PROJECT-341/verify or any path,
-    // GitHub Pages shows 404.html. This script converts the path to a hash route.
-    var pathSegmentsToKeep = 1; // keep /IAMS-PROJECT-341
-    var l = window.location;
-    var fullPath = l.pathname.split('/').slice(pathSegmentsToKeep + 1).join('/');
-    var hash = fullPath ? '#/' + fullPath : '#/';
-    // Preserve query string and hash from Supabase (token, type, etc.)
-    var query = l.search || '';
-    var existingHash = l.hash || '';
-    l.replace(
-      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-      l.pathname.split('/').slice(0, pathSegmentsToKeep + 1).join('/') + '/' +
-      query + hash + (existingHash ? existingHash.substring(1) : '')
+    // GitHub Pages SPA redirect for BrowserRouter
+    // Converts path to query string, index.html reads it back
+    var repo = '/IAMS-PROJECT-341';
+    var fullPath = window.location.pathname.replace(repo, '');
+    var query = window.location.search;
+    var hash = window.location.hash;
+    // Redirect to index with path stored in query param
+    window.location.replace(
+      window.location.origin + repo + '/?p=' + encodeURIComponent(fullPath + query + hash)
     );
   </script>
 </head>
