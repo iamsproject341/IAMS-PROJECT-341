@@ -49,7 +49,6 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await signUp({ email, password, fullName, role: 'student' });
-      // Show success toast with email check message
       toast.success(
         (t) => (
           <div>
@@ -61,10 +60,7 @@ export default function RegisterPage() {
         ),
         { duration: 5000 }
       );
-      // Redirect to login after 3 seconds
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
+      setTimeout(() => { navigate('/login'); }, 3000);
     } catch (err) {
       toast.error(err.message || 'Registration failed');
     } finally { setLoading(false); }
@@ -74,8 +70,8 @@ export default function RegisterPage() {
     <div className="auth-page auth-page-enter">
       <div className="auth-left">
         <div className="auth-card">
-          <button className="btn btn-ghost" onClick={() => navigate('/')} style={{ marginBottom: 18, gap: 6, color: 'var(--text-muted)' }}>
-            <ArrowLeft size={15} /> Back to Home
+          <button className="btn btn-ghost" onClick={() => navigate('/auth')} style={{ marginBottom: 18, gap: 6, color: 'var(--text-muted)' }}>
+            <ArrowLeft size={15} /> Back
           </button>
           <div className="auth-header">
             <div className="auth-logo"><Logo size="lg" /></div>
