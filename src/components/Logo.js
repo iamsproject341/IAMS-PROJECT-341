@@ -1,5 +1,14 @@
 import React from 'react';
-import { Workflow } from 'lucide-react';
+
+function AIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M32 8L12 56h10l4-10.5h20l4 10.5h10L32 8zm0 16l6.5 16.5h-13L32 24z" fill="currentColor"/>
+    </svg>
+  );
+}
+
+export { AIcon };
 
 export default function Logo({ size = 'md' }) {
   const sizes = {
@@ -21,9 +30,10 @@ export default function Logo({ size = 'md' }) {
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
+          color: '#031c18',
         }}
       >
-        <Workflow size={s.iconSvg} color="#031c18" strokeWidth={2} />
+        <AIcon size={s.iconSvg} />
       </div>
       <div>
         <h1
