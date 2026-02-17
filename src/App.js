@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -43,7 +43,7 @@ function PublicRoute({ children }) {
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/IAMS-PROJECT-341">
         <Toaster
           position="top-right"
           toastOptions={{
