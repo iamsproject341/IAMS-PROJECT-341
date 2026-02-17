@@ -1,0 +1,447 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AIcon } from '../components/Logo';
+import { LogIn, UserPlus, ArrowRight } from 'lucide-react';
+
+export default function AuthSplitPage() {
+  const navigate = useNavigate();
+  const [hovered, setHovered] = useState(null); // null | 'signin' | 'create'
+
+  return (
+    <div className="asp-root">
+      {/* Logo */}
+      <div className="asp-logo">
+        <div className="asp-logo-icon"><AIcon size={16} /></div>
+        <span>AttachFlow</span>
+      </div>
+
+      {/* Back button */}
+      <button className="asp-back" onClick={() => navigate('/')}>
+        ← Back
+      </button>
+
+      {/* CREATE ONE - Top Right */}
+      <div
+        className={`asp-half asp-create ${hovered === 'create' ? 'asp-active' : ''} ${hovered === 'signin' ? 'asp-shrink' : ''}`}
+        onMouseEnter={() => setHovered('create')}
+        onMouseLeave={() => setHovered(null)}
+        onClick={() => navigate('/register')}
+      >
+        <div className="asp-content">
+          <div className="asp-label-wrap">
+            <div className={`asp-icon-circle ${hovered === 'create' ? 'asp-icon-pop' : ''}`}>
+              <UserPlus size={22} />
+            </div>
+            <h2 className="asp-title">Create One</h2>
+          </div>
+          <div className={`asp-preview ${hovered === 'create' ? 'asp-preview-show' : ''}`}>
+            <p>New to AttachFlow? Register as a student to set your preferences, get matched with organizations, and manage your industrial attachment journey.</p>
+            <div className="asp-cta">
+              <span>Get Started</span>
+              <ArrowRight size={16} />
+            </div>
+          </div>
+        </div>
+        <div className="asp-bg-text">REGISTER</div>
+      </div>
+
+      {/* SIGN IN - Bottom Left */}
+      <div
+        className={`asp-half asp-signin ${hovered === 'signin' ? 'asp-active' : ''} ${hovered === 'create' ? 'asp-shrink' : ''}`}
+        onMouseEnter={() => setHovered('signin')}
+        onMouseLeave={() => setHovered(null)}
+        onClick={() => navigate('/login')}
+      >
+        <div className="asp-content">
+          <div className="asp-label-wrap">
+            <div className={`asp-icon-circle ${hovered === 'signin' ? 'asp-icon-pop' : ''}`}>
+              <LogIn size={22} />
+            </div>
+            <h2 className="asp-title">Sign In</h2>
+          </div>
+          <div className={`asp-preview ${hovered === 'signin' ? 'asp-preview-show' : ''}`}>
+            <p>Already have an account? Sign in to access your dashboard, check your placement status, and submit your weekly logbooks.</p>
+            <div className="asp-cta">
+              <span>Continue</span>
+              <ArrowRight size={16} />
+            </div>
+          </div>
+        </div>
+        <div className="asp-bg-text">LOGIN</div>
+      </div>
+
+      {/* Diagonal line */}
+      <div className={`asp-divider ${hovered ? 'asp-divider-fade' : ''}`}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          <line x1="0" y1="100" x2="100" y2="0" stroke="rgba(20,184,166,0.3)" strokeWidth="0.15" />
+        </svg>
+      </div>
+
+      {/* Center logo mark */}
+      <div className={`asp-center-mark ${hovered ? 'asp-center-hide' : ''}`}>
+        <div className="asp-center-dot" />
+        <span>or</span>
+        <div className="asp-center-dot" />
+      </div>
+
+      <style>{aspCSS}</style>
+    </div>
+  );
+}
+
+const aspCSS = `
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap');
+
+.asp-root {
+  position: fixed;
+  inset: 0;
+  background: #0b1520;
+  overflow: hidden;
+  font-family: 'Manrope', -apple-system, sans-serif;
+}
+
+/* Logo */
+.asp-logo {
+  position: fixed;
+  top: 24px;
+  left: 28px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.asp-logo-icon {
+  width: 30px; height: 30px;
+  border-radius: 7px;
+  background: #14b8a6;
+  display: flex; align-items: center; justify-content: center;
+  color: #031c18;
+}
+
+/* Back */
+.asp-back {
+  position: fixed;
+  top: 28px;
+  right: 28px;
+  z-index: 100;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.5);
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.asp-back:hover {
+  border-color: rgba(20,184,166,0.3);
+  color: #14b8a6;
+}
+
+/* Halves */
+.asp-half {
+  position: fixed;
+  cursor: pointer;
+  transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Create One - Top Right triangle */
+.asp-create {
+  top: 0; right: 0;
+  width: 100%; height: 100%;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  background: linear-gradient(135deg, #0d1a28 0%, #0f2234 100%);
+}
+.asp-create:hover {
+  background: linear-gradient(135deg, #0f1f30 0%, #122a40 100%);
+}
+
+/* Sign In - Bottom Left triangle */
+.asp-signin {
+  bottom: 0; left: 0;
+  width: 100%; height: 100%;
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+  background: linear-gradient(315deg, #0d1a28 0%, #0a1420 100%);
+}
+.asp-signin:hover {
+  background: linear-gradient(315deg, #0f1f30 0%, #0c1825 100%);
+}
+
+/* Active state - expand */
+.asp-half.asp-active {
+  z-index: 10;
+}
+.asp-create.asp-active {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 30%);
+}
+.asp-signin.asp-active {
+  clip-path: polygon(0 0, 100% 70%, 100% 100%, 0 100%);
+}
+
+/* Shrink state */
+.asp-create.asp-shrink {
+  clip-path: polygon(15% 0, 100% 0, 100% 85%);
+}
+.asp-signin.asp-shrink {
+  clip-path: polygon(0 15%, 85% 100%, 0 100%);
+}
+
+/* Content positioning */
+.asp-create .asp-content {
+  position: absolute;
+  top: 18%;
+  right: 12%;
+  text-align: right;
+  max-width: 380px;
+}
+.asp-signin .asp-content {
+  position: absolute;
+  bottom: 18%;
+  left: 12%;
+  text-align: left;
+  max-width: 380px;
+}
+
+/* Labels */
+.asp-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 0;
+  transition: all 0.4s ease;
+}
+.asp-create .asp-label-wrap {
+  flex-direction: row-reverse;
+}
+
+.asp-icon-circle {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(20,184,166,0.2);
+  display: flex; align-items: center; justify-content: center;
+  color: #14b8a6;
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  flex-shrink: 0;
+}
+.asp-icon-pop {
+  background: #14b8a6;
+  color: #031c18;
+  border-color: #14b8a6;
+  transform: scale(1.1);
+  box-shadow: 0 0 30px rgba(20,184,166,0.3);
+}
+
+.asp-title {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  letter-spacing: -0.02em;
+  transition: all 0.4s ease;
+  margin: 0;
+  line-height: 1;
+}
+.asp-active .asp-title {
+  color: white;
+  font-size: 2.2rem;
+}
+
+/* Preview panel */
+.asp-preview {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  margin-top: 0;
+}
+.asp-preview-show {
+  max-height: 200px;
+  opacity: 1;
+  margin-top: 20px;
+}
+.asp-preview p {
+  font-size: 0.88rem;
+  color: #8b9bb4;
+  line-height: 1.7;
+  margin: 0 0 18px;
+}
+.asp-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #14b8a6;
+  transition: gap 0.3s ease;
+}
+.asp-half:hover .asp-cta {
+  gap: 12px;
+}
+
+/* Background watermark text */
+.asp-bg-text {
+  position: absolute;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 12vw;
+  font-weight: 700;
+  color: rgba(255,255,255,0.015);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  transition: all 0.6s ease;
+  user-select: none;
+}
+.asp-create .asp-bg-text {
+  top: 6%;
+  right: -2%;
+}
+.asp-signin .asp-bg-text {
+  bottom: 6%;
+  left: -2%;
+}
+.asp-active .asp-bg-text {
+  color: rgba(255,255,255,0.03);
+}
+
+/* Diagonal divider line */
+.asp-divider {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+.asp-divider svg {
+  width: 100%;
+  height: 100%;
+}
+.asp-divider-fade {
+  opacity: 0.3;
+}
+
+/* Center "or" */
+.asp-center-mark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  transition: all 0.4s ease;
+}
+.asp-center-hide {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.8);
+}
+.asp-center-mark span {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.25);
+  font-style: italic;
+}
+.asp-center-dot {
+  width: 24px;
+  height: 1px;
+  background: rgba(20,184,166,0.25);
+}
+
+/* Hover glow effects */
+.asp-create.asp-active::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -20%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle, rgba(20,184,166,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.asp-signin.asp-active::after {
+  content: '';
+  position: absolute;
+  bottom: -20%;
+  left: -20%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle, rgba(20,184,166,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .asp-create, .asp-signin {
+    clip-path: none !important;
+  }
+  .asp-create {
+    height: 50%;
+    width: 100%;
+    clip-path: none !important;
+  }
+  .asp-signin {
+    top: 50%;
+    height: 50%;
+    width: 100%;
+    clip-path: none !important;
+  }
+  .asp-create.asp-active {
+    height: 65%;
+    clip-path: none !important;
+  }
+  .asp-signin.asp-active {
+    top: 35%;
+    height: 65%;
+    clip-path: none !important;
+  }
+  .asp-create.asp-shrink {
+    height: 35%;
+    clip-path: none !important;
+  }
+  .asp-signin.asp-shrink {
+    top: 65%;
+    height: 35%;
+    clip-path: none !important;
+  }
+  .asp-create .asp-content {
+    top: auto;
+    right: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .asp-signin .asp-content {
+    bottom: auto;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .asp-create .asp-label-wrap {
+    flex-direction: row;
+    justify-content: center;
+  }
+  .asp-signin .asp-label-wrap {
+    justify-content: center;
+  }
+  .asp-title { font-size: 1.6rem; }
+  .asp-active .asp-title { font-size: 1.8rem; }
+  .asp-divider { display: none; }
+  .asp-center-mark {
+    flex-direction: row;
+  }
+  .asp-bg-text { font-size: 20vw; }
+}
+`;
