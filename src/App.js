@@ -6,13 +6,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import VerifyPage from './pages/VerifyPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import DashboardHome from './pages/DashboardHome';
 import StudentPreferences from './pages/StudentPreferences';
 import OrgPreferences from './pages/OrgPreferences';
 import LogbookPage from './pages/LogbookPage';
 import MatchingPage from './pages/MatchingPage';
-import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 
 function ProtectedRoute({ children }) {
@@ -54,7 +54,7 @@ function App() {
               border: '1px solid rgba(255,255,255,0.06)',
               borderRadius: '8px',
               fontSize: '0.875rem',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Manrope', sans-serif",
             },
             success: { iconTheme: { primary: '#14b8a6', secondary: '#031c18' } },
             error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
@@ -64,13 +64,13 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+          <Route path="/verify" element={<VerifyPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<DashboardHome />} />
             <Route path="preferences" element={<StudentPreferences />} />
             <Route path="org-preferences" element={<OrgPreferences />} />
             <Route path="logbook" element={<LogbookPage />} />
             <Route path="matching" element={<MatchingPage />} />
-            <Route path="admin" element={<AdminPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
