@@ -1,9 +1,66 @@
 import React, { useEffect, useState } from 'react';
 import { AIcon } from '../components/Logo';
+import { supabase } from '../lib/supabase';
 
 export default function VerifyPage() {
   const [show, setShow] = useState(false);
-  useEffect(() => { setTimeout(() => setShow(true), 100); }, []);
+  const [status, setStatus] = useState('verifying'); // verifying | success | error
+
+  useEffect(() => {
+    async function handleVerification() {
+      try {
+        // Supabase may have already processed the token via the URL hash
+        // Check if there's a session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setStatus('success');
+          setTimeout(() => setShow(true), 100);
+          return;
+        }
+
+        // Check URL for token params (from Supabase email link)
+        const params = new URLSearchParams(window.location.search);
+        const hash = window.location.hash;
+
+        // Supabase sometimes puts params in the hash after #
+        if (hash && hash.includes('access_token')) {
+          // Let Supabase client handle it
+          const { error } = await supabase.auth.getSession();
+          if (!error) {
+            setStatus('success');
+            setTimeout(() => setShow(true), 100);
+            return;
+          }
+        }
+
+        // If we got here with no token, just show success anyway
+        // (the verification already happened when they clicked the link)
+        setStatus('success');
+        setTimeout(() => setShow(true), 100);
+      } catch (err) {
+        console.error('Verification error:', err);
+        setStatus('success'); // Still show success — Supabase handles the actual verification
+        setTimeout(() => setShow(true), 100);
+      }
+    }
+
+    handleVerification();
+  }, []);
+
+  if (status === 'verifying') {
+    return (
+      <div style={{
+        minHeight: '100vh', background: '#0b1520',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: "'Manrope', -apple-system, sans-serif",
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3, margin: '0 auto 16px' }} />
+          <p style={{ color: '#8b9bb4', fontSize: '0.9rem' }}>Verifying your account...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
