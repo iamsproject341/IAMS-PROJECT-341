@@ -84,10 +84,10 @@ const aspCSS = `
 .asp-signin { bottom: 0; left: 0; width: 100%; height: 100%; clip-path: polygon(0 0, 0 100%, 100% 100%); background: linear-gradient(315deg, #0d1a28 0%, #0a1420 100%); }
 .asp-signin:hover { background: linear-gradient(315deg, #0f1f30 0%, #0c1825 100%); }
 .asp-half.asp-active { z-index: 10; }
-.asp-create.asp-active { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 70%); }
-.asp-signin.asp-active { clip-path: polygon(0 30%, 100% 0, 100% 100%, 0 100%); }
-.asp-create.asp-shrink { clip-path: polygon(0 0, 100% 0, 100% 30%); }
-.asp-signin.asp-shrink { clip-path: polygon(0 70%, 100% 100%, 0 100%); }
+.asp-create.asp-active { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 30%); }
+.asp-signin.asp-active { clip-path: polygon(0 0, 100% 70%, 100% 100%, 0 100%); }
+.asp-create.asp-shrink { clip-path: polygon(15% 0, 100% 0, 100% 85%); }
+.asp-signin.asp-shrink { clip-path: polygon(0 15%, 85% 100%, 0 100%); }
 .asp-create .asp-content { position: absolute; top: 18%; right: 12%; text-align: right; max-width: 380px; }
 .asp-signin .asp-content { position: absolute; bottom: 18%; left: 12%; text-align: left; max-width: 380px; }
 .asp-label-wrap { display: flex; align-items: center; gap: 14px; margin-bottom: 0; transition: all 0.4s ease; }
