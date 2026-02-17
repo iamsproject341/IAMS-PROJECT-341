@@ -12,6 +12,7 @@ import StudentPreferences from './pages/StudentPreferences';
 import OrgPreferences from './pages/OrgPreferences';
 import LogbookPage from './pages/LogbookPage';
 import MatchingPage from './pages/MatchingPage';
+import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 
 function ProtectedRoute({ children }) {
@@ -69,6 +70,7 @@ function App() {
             <Route path="org-preferences" element={<OrgPreferences />} />
             <Route path="logbook" element={<LogbookPage />} />
             <Route path="matching" element={<MatchingPage />} />
+            <Route path="admin" element={<AdminPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
