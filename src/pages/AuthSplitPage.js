@@ -7,6 +7,10 @@ export default function AuthSplitPage() {
   const navigate = useNavigate();
   const [hovered, setHovered] = useState(null);
 
+  // The diagonal split point shifts based on hover
+  // Default: 50% (even split). Hover create: 70% (create gets more). Hover signin: 30% (signin gets more).
+  const split = hovered === 'create' ? 70 : hovered === 'signin' ? 30 : 50;
+
   return (
     <div className="asp-root">
       <div className="asp-logo">
@@ -17,11 +21,11 @@ export default function AuthSplitPage() {
 
       {/* CREATE ONE - Top Right */}
       <div
-        className={`asp-half asp-create ${hovered === 'create' ? 'asp-active' : ''} ${hovered === 'signin' ? 'asp-shrink' : ''}`}
+        className={`asp-half asp-create ${hovered === 'create' ? 'asp-active' : ''}`}
+        style={{ clipPath: `polygon(0 0, 100% 0, 100% ${split}%)` }}
         onMouseEnter={() => setHovered('create')}
         onMouseLeave={() => setHovered(null)}
         onClick={() => navigate('/register')}
-        style={{ zIndex: hovered === 'create' ? 10 : 1 }}
       >
         <div className="asp-content">
           <div className="asp-label-wrap">
@@ -40,11 +44,11 @@ export default function AuthSplitPage() {
 
       {/* SIGN IN - Bottom Left */}
       <div
-        className={`asp-half asp-signin ${hovered === 'signin' ? 'asp-active' : ''} ${hovered === 'create' ? 'asp-shrink' : ''}`}
+        className={`asp-half asp-signin ${hovered === 'signin' ? 'asp-active' : ''}`}
+        style={{ clipPath: `polygon(0 ${100 - split}%, 100% 100%, 0 100%)` }}
         onMouseEnter={() => setHovered('signin')}
         onMouseLeave={() => setHovered(null)}
         onClick={() => navigate('/login')}
-        style={{ zIndex: hovered === 'signin' ? 10 : 2 }}
       >
         <div className="asp-content">
           <div className="asp-label-wrap">
@@ -80,21 +84,12 @@ const aspCSS = `
 .asp-logo-icon { width: 30px; height: 30px; border-radius: 7px; background: #14b8a6; display: flex; align-items: center; justify-content: center; color: #031c18; }
 .asp-back { position: fixed; top: 28px; right: 28px; z-index: 100; background: none; border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); font-family: 'Manrope', sans-serif; font-size: 0.78rem; font-weight: 500; padding: 6px 16px; border-radius: 20px; cursor: pointer; transition: all 0.3s ease; }
 .asp-back:hover { border-color: rgba(20,184,166,0.3); color: #14b8a6; }
-.asp-half { position: fixed; cursor: pointer; transition: clip-path 0.6s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.asp-half { position: fixed; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; transition: clip-path 0.6s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s ease; }
 
-/* Default triangles */
-.asp-create { top: 0; right: 0; width: 100%; height: 100%; clip-path: polygon(0 0, 100% 0, 100% 100%); background: linear-gradient(135deg, #0d1a28 0%, #0f2234 100%); }
+.asp-create { background: linear-gradient(135deg, #0d1a28 0%, #0f2234 100%); z-index: 2; }
 .asp-create:hover { background: linear-gradient(135deg, #0f1f30 0%, #122a40 100%); }
-.asp-signin { bottom: 0; left: 0; width: 100%; height: 100%; clip-path: polygon(0 0, 0 100%, 100% 100%); background: linear-gradient(315deg, #0d1a28 0%, #0a1420 100%); }
+.asp-signin { background: linear-gradient(315deg, #0d1a28 0%, #0a1420 100%); z-index: 3; }
 .asp-signin:hover { background: linear-gradient(315deg, #0f1f30 0%, #0c1825 100%); }
-
-/* Active: hovered half expands by pushing the diagonal */
-.asp-create.asp-active { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 30%); }
-.asp-signin.asp-active { clip-path: polygon(0 0, 100% 70%, 100% 100%, 0 100%); }
-
-/* Shrink: non-hovered half retreats */
-.asp-create.asp-shrink { clip-path: polygon(30% 0, 100% 0, 100% 70%); }
-.asp-signin.asp-shrink { clip-path: polygon(0 30%, 0 100%, 70% 100%); }
 
 .asp-create .asp-content { position: absolute; top: 18%; right: 12%; text-align: right; max-width: 380px; }
 .asp-signin .asp-content { position: absolute; bottom: 18%; left: 12%; text-align: left; max-width: 380px; }
@@ -123,10 +118,6 @@ const aspCSS = `
   .asp-create, .asp-signin { clip-path: none !important; }
   .asp-create { height: 50%; width: 100%; }
   .asp-signin { top: 50%; height: 50%; width: 100%; }
-  .asp-create.asp-active { height: 65%; }
-  .asp-signin.asp-active { top: 35%; height: 65%; }
-  .asp-create.asp-shrink { height: 35%; }
-  .asp-signin.asp-shrink { top: 65%; height: 35%; }
   .asp-create .asp-content, .asp-signin .asp-content { top: 50%; left: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%); text-align: center; }
   .asp-create .asp-label-wrap { flex-direction: row; justify-content: center; }
   .asp-signin .asp-label-wrap { justify-content: center; }
