@@ -93,9 +93,9 @@ const aspCSS = `
 
 /* Divider */
 .asp-divider { position: fixed; left: 0; right: 0; z-index: 20; display: flex; align-items: center; justify-content: center; gap: 16px; transform: translateY(-50%); transition: top 0.6s cubic-bezier(0.22, 1, 0.36, 1); pointer-events: none; }
-.asp-divider-line { width: 40px; height: 1px; background: rgba(20,184,166,0.2); transition: opacity 0.4s ease; }
-.asp-or { font-family: 'Lora', Georgia, serif; font-size: 0.8rem; font-weight: 500; color: rgba(255,255,255,0.3); font-style: italic; transition: opacity 0.4s ease; }
-.asp-or-fade { opacity: 0.15; }
+.asp-divider-line { width: 50px; height: 1px; background: rgba(20,184,166,0.4); transition: opacity 0.4s ease; }
+.asp-or { font-family: 'Lora', Georgia, serif; font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.6); font-style: italic; transition: opacity 0.4s ease; }
+.asp-or-fade { opacity: 0.3; }
 
 /* Content */
 .asp-create .asp-content { text-align: center; max-width: 420px; }
