@@ -33,15 +33,25 @@ export default function DashboardHome() {
         const [prefs, logbooks, match] = await Promise.all([
           supabase.from('student_preferences').select('id').eq('student_id', user.id),
           supabase.from('logbooks').select('id', { count: 'exact', head: true }).eq('student_id', user.id),
-          supabase.from('matches').select('*, org:profiles!matches_org_id_fkey(full_name)').eq('student_id', user.id).eq('status', 'approved').maybeSingle(),
+          supabase.from('matches').select('*, org:profiles!matches_org_id_fkey(full_name, email)').eq('student_id', user.id).eq('status', 'approved').maybeSingle(),
         ]);
         setStats({ prefsSet: prefs.data?.length > 0, logbookCount: logbooks.count || 0, match: match.data });
       } else if (role === 'organization') {
-        const [prefs, matches] = await Promise.all([
+        const [prefs, matchedStudents] = await Promise.all([
           supabase.from('org_preferences').select('id').eq('org_id', user.id),
-          supabase.from('matches').select('id', { count: 'exact', head: true }).eq('org_id', user.id).eq('status', 'approved'),
+          supabase.from('matches')
+            .select('id, score, status, student_id, student:profiles!matches_student_id_fkey(full_name, email)')
+            .eq('org_id', user.id)
+            .eq('status', 'approved'),
         ]);
-        setStats({ prefsSet: prefs.data?.length > 0, matchedStudents: matches.count || 0 });
+        const students = (matchedStudents.data || []).map(m => ({
+          ...m,
+          student: m.student || { full_name: 'Unknown', email: '' },
+        }));
+        setStats({
+          prefsSet: prefs.data?.length > 0,
+          matchedStudents: students,
+        });
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -65,7 +75,7 @@ export default function DashboardHome() {
         </div>
       </AnimatedCard>
 
-      {/* Coordinator */}
+      {/* ── Coordinator ── */}
       {role === 'coordinator' && (
         <>
           <div className="stat-grid">
@@ -102,7 +112,7 @@ export default function DashboardHome() {
         </>
       )}
 
-      {/* Student */}
+      {/* ── Student ── */}
       {role === 'student' && (
         <>
           <div className="stat-grid">
@@ -126,10 +136,18 @@ export default function DashboardHome() {
           {stats.match && (
             <AnimatedCard delay={0.3} className="card" style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: '#3b82f615', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Building2 size={18} color="#3b82f6" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-primary)' }}>{stats.match.org?.full_name || 'Organization'}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{stats.match.org?.email}</div>
+                </div>
                 <span className="badge badge-green">Approved Placement</span>
               </div>
-              <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{stats.match.org?.full_name || 'Organization'}</div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>You have been matched. Check your logbook section to start logging weekly progress.</div>
+              <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+                You have been matched with this organization. Head to your logbook to start documenting your weekly progress.
+              </div>
             </AnimatedCard>
           )}
           {!stats.prefsSet && (
@@ -149,7 +167,7 @@ export default function DashboardHome() {
         </>
       )}
 
-      {/* Organization */}
+      {/* ── Organization ── */}
       {role === 'organization' && (
         <>
           <div className="stat-grid">
@@ -165,13 +183,37 @@ export default function DashboardHome() {
             <AnimatedCard delay={0.13} className="stat-card">
               <div className="stat-icon blue"><GraduationCap size={20} /></div>
               <div>
-                <div className="stat-value"><CountUp end={stats.matchedStudents} /></div>
+                <div className="stat-value"><CountUp end={stats.matchedStudents?.length || 0} /></div>
                 <div className="stat-label">Matched Students</div>
               </div>
             </AnimatedCard>
           </div>
+
+          {/* Show matched students */}
+          {stats.matchedStudents?.length > 0 && (
+            <AnimatedCard delay={0.25} className="card" style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Matched Students</div>
+              {stats.matchedStudents.map(m => (
+                <div key={m.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
+                  borderTop: '1px solid var(--border)',
+                }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: '#14b8a615', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <GraduationCap size={16} color="#14b8a6" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{m.student?.full_name}</div>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>{m.student?.email}</div>
+                  </div>
+                  <span className="badge badge-green">Active</span>
+                  <span className="badge badge-teal" style={{ fontSize: '0.7rem' }}>Score: {m.score}/100</span>
+                </div>
+              ))}
+            </AnimatedCard>
+          )}
+
           {!stats.prefsSet && (
-            <AnimatedCard delay={0.25} className="card action-card" onClick={() => navigate('/dashboard/org-preferences')}>
+            <AnimatedCard delay={0.3} className="card action-card" onClick={() => navigate('/dashboard/org-preferences')}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div className="stat-icon amber"><AlertCircle size={20} /></div>
@@ -187,7 +229,7 @@ export default function DashboardHome() {
         </>
       )}
 
-      {/* Supervisor */}
+      {/* ── Supervisor ── */}
       {role === 'supervisor' && (
         <AnimatedCard delay={0.1} className="card">
           <div className="empty-state" style={{ padding: '40px 24px' }}>
