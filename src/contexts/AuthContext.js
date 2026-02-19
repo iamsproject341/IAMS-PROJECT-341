@@ -30,6 +30,15 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function fetchProfile(userId) {
+    // Timeout: if profile fetch takes >5s, proceed without profile
+    // (use user_metadata as fallback)
+    var timedOut = false;
+    var timer = setTimeout(function() {
+      timedOut = true;
+      console.warn('Profile fetch timed out, using metadata fallback');
+      setLoading(false);
+    }, 5000);
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -37,15 +46,20 @@ export function AuthProvider({ children }) {
         .eq('id', userId)
         .single();
       
+      if (timedOut) return; // Already resolved via timeout
+      clearTimeout(timer);
+
       if (error && error.code === 'PGRST116') {
         setProfile(null);
       } else if (data) {
         setProfile(data);
       }
     } catch (err) {
+      if (timedOut) return;
+      clearTimeout(timer);
       console.error('Profile fetch error:', err);
     } finally {
-      setLoading(false);
+      if (!timedOut) setLoading(false);
     }
   }
 
