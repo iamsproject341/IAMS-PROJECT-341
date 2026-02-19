@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Plus, BookOpen, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, BookOpen, Calendar, ChevronDown, ChevronUp, Lock, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LogbookPage() {
   const { user, profile } = useAuth();
   const role = profile?.role || user?.user_metadata?.role;
+
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [match, setMatch] = useState(null); // null = loading, false = no match, object = matched
+  const [matchLoading, setMatchLoading] = useState(true);
 
   // Form fields
   const [weekNumber, setWeekNumber] = useState('');
@@ -22,9 +25,32 @@ export default function LogbookPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    loadEntries();
+    if (user && role === 'student') {
+      checkMatch();
+      loadEntries();
+    } else {
+      setLoading(false);
+      setMatchLoading(false);
+    }
     // eslint-disable-next-line
-  }, []);
+  }, [user, role]);
+
+  async function checkMatch() {
+    try {
+      const { data } = await supabase
+        .from('matches')
+        .select('*, org:profiles!matches_org_id_fkey(full_name, email)')
+        .eq('student_id', user.id)
+        .eq('status', 'approved')
+        .maybeSingle();
+
+      setMatch(data || false);
+    } catch (err) {
+      console.error('Match check error:', err);
+      setMatch(false);
+    }
+    setMatchLoading(false);
+  }
 
   async function loadEntries() {
     try {
@@ -37,9 +63,8 @@ export default function LogbookPage() {
       setEntries(data || []);
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   function resetForm() {
@@ -74,11 +99,11 @@ export default function LogbookPage() {
       loadEntries();
     } catch (err) {
       toast.error(err.message || 'Submission failed');
-    } finally {
-      setSubmitting(false);
     }
+    setSubmitting(false);
   }
 
+  // Guard: not a student
   if (role !== 'student') {
     return (
       <div className="card">
@@ -91,6 +116,38 @@ export default function LogbookPage() {
     );
   }
 
+  // Loading
+  if (matchLoading || loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><div className="spinner" /></div>;
+  }
+
+  // ── LOCKED: Student not yet matched ──
+  if (!match) {
+    return (
+      <div>
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Weekly Logbook</h1>
+            <p className="page-subtitle">Document your weekly activities and progress during attachment.</p>
+          </div>
+        </div>
+        <div className="card">
+          <div className="empty-state" style={{ padding: '60px 24px' }}>
+            <div className="empty-state-icon" style={{ background: 'rgba(245,158,11,0.1)' }}>
+              <Lock size={28} color="#f59e0b" />
+            </div>
+            <h3>Logbook Locked</h3>
+            <p style={{ maxWidth: 400 }}>
+              You need to be matched with an organization before you can start submitting logbook entries.
+              Please ensure you have submitted your preferences and wait for the coordinator to approve your placement.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── UNLOCKED: Student is matched ──
   return (
     <div>
       <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -105,6 +162,21 @@ export default function LogbookPage() {
         )}
       </div>
 
+      {/* Match info banner */}
+      <div className="card" style={{ marginBottom: 20, padding: '14px 20px', border: '1px solid rgba(20,184,166,0.2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#3b82f615', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Building2 size={16} color="#3b82f6" />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Placed at</div>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.92rem' }}>{match.org?.full_name}</div>
+          </div>
+          <span className="badge badge-green" style={{ marginLeft: 'auto' }}>Active Placement</span>
+        </div>
+      </div>
+
+      {/* New entry form */}
       {showForm && (
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header">
@@ -115,66 +187,34 @@ export default function LogbookPage() {
             <div className="form-row" style={{ marginBottom: 0 }}>
               <div className="form-group">
                 <label className="form-label">Week Number *</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="e.g. 1"
-                  min={1}
-                  max={52}
-                  value={weekNumber}
-                  onChange={(e) => setWeekNumber(e.target.value)}
-                />
+                <input type="number" className="form-input" placeholder="e.g. 1" min={1} max={52}
+                  value={weekNumber} onChange={e => setWeekNumber(e.target.value)} />
               </div>
               <div className="form-group">
                 <label className="form-label">Week Starting Date *</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={weekStarting}
-                  onChange={(e) => setWeekStarting(e.target.value)}
-                />
+                <input type="date" className="form-input" value={weekStarting} onChange={e => setWeekStarting(e.target.value)} />
               </div>
             </div>
             <div className="form-group">
               <label className="form-label">Activities Performed *</label>
-              <textarea
-                className="form-textarea"
-                placeholder="Describe what you did this week..."
-                value={activitiesPerformed}
-                onChange={(e) => setActivitiesPerformed(e.target.value)}
-                rows={4}
-              />
+              <textarea className="form-textarea" placeholder="Describe what you did this week..." value={activitiesPerformed}
+                onChange={e => setActivitiesPerformed(e.target.value)} rows={4} />
             </div>
             <div className="form-group">
               <label className="form-label">Skills Learned</label>
-              <textarea
-                className="form-textarea"
-                placeholder="What new skills or knowledge did you gain?"
-                value={skillsLearned}
-                onChange={(e) => setSkillsLearned(e.target.value)}
-                rows={3}
-              />
+              <textarea className="form-textarea" placeholder="What new skills or knowledge did you gain?" value={skillsLearned}
+                onChange={e => setSkillsLearned(e.target.value)} rows={3} />
             </div>
             <div className="form-row" style={{ marginBottom: 0 }}>
               <div className="form-group">
                 <label className="form-label">Challenges Faced</label>
-                <textarea
-                  className="form-textarea"
-                  placeholder="Any difficulties or obstacles..."
-                  value={challenges}
-                  onChange={(e) => setChallenges(e.target.value)}
-                  rows={3}
-                />
+                <textarea className="form-textarea" placeholder="Any difficulties or obstacles..." value={challenges}
+                  onChange={e => setChallenges(e.target.value)} rows={3} />
               </div>
               <div className="form-group">
                 <label className="form-label">Plan for Next Week</label>
-                <textarea
-                  className="form-textarea"
-                  placeholder="What do you plan to work on next?"
-                  value={nextWeekPlan}
-                  onChange={(e) => setNextWeekPlan(e.target.value)}
-                  rows={3}
-                />
+                <textarea className="form-textarea" placeholder="What do you plan to work on next?" value={nextWeekPlan}
+                  onChange={e => setNextWeekPlan(e.target.value)} rows={3} />
               </div>
             </div>
             <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: 8 }}>
@@ -184,9 +224,8 @@ export default function LogbookPage() {
         </div>
       )}
 
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><div className="spinner" /></div>
-      ) : entries.length === 0 ? (
+      {/* Entries list */}
+      {entries.length === 0 ? (
         <div className="card">
           <div className="empty-state">
             <div className="empty-state-icon"><BookOpen size={28} /></div>
@@ -201,8 +240,9 @@ export default function LogbookPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {entries.map((entry) => (
-            <div key={entry.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}>
+          {entries.map(entry => (
+            <div key={entry.id} className="card" style={{ cursor: 'pointer' }}
+              onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div className="stat-icon teal" style={{ width: 40, height: 40 }}>
