@@ -100,44 +100,46 @@ export default function AdminPage() {
     setCreating(true);
     try {
       // supabaseAdmin has persistSession:false — coordinator stays logged in
-      const { data, error } = await supabaseAdmin.auth.signUp({
+      var signUpResult = await supabaseAdmin.auth.signUp({
         email: email.trim(),
-        password,
+        password: password,
         options: {
           data: { full_name: fullName.trim(), role: newRole },
         },
       });
 
-      if (error) throw error;
+      if (signUpResult.error) throw signUpResult.error;
 
       // Check if user was actually created (not a duplicate)
-      if (data?.user?.identities?.length === 0) {
+      if (signUpResult.data && signUpResult.data.user && signUpResult.data.user.identities && signUpResult.data.user.identities.length === 0) {
         throw new Error('An account with this email already exists.');
       }
 
-      // Wait for the auto-trigger to create the profile row
-      await new Promise(r => setTimeout(r, 2000));
+      // Give the database trigger 1.5s to create the profile
+      await new Promise(function(resolve) { setTimeout(resolve, 1500); });
 
-      // Update the profile to ensure role is correct
-      if (data?.user?.id) {
-        const { error: updateErr } = await supabase
-          .from('profiles')
-          .update({ full_name: fullName.trim(), role: newRole })
-          .eq('id', data.user.id);
-
-        if (updateErr) {
-          console.warn('Profile update warning:', updateErr);
+      // Try to update the profile role (may fail due to RLS, that's okay)
+      try {
+        if (signUpResult.data && signUpResult.data.user) {
+          await supabase
+            .from('profiles')
+            .update({ full_name: fullName.trim(), role: newRole })
+            .eq('id', signUpResult.data.user.id);
         }
+      } catch (updateErr) {
+        console.warn('Profile update skipped:', updateErr);
       }
 
-      setCreatedAccount({ fullName: fullName.trim(), email: email.trim(), password, role: newRole });
-      toast.success(`${newRole.charAt(0).toUpperCase() + newRole.slice(1)} account created!`);
+      setCreatedAccount({ fullName: fullName.trim(), email: email.trim(), password: password, role: newRole });
+      toast.success(newRole.charAt(0).toUpperCase() + newRole.slice(1) + ' account created!');
+      setCreating(false);
       loadAll();
+      return;
     } catch (err) {
       console.error('Create error:', err);
       toast.error(err.message || 'Failed to create account');
-    } finally {
       setCreating(false);
+      return;
     }
   }
 
