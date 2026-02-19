@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, supabaseAdmin } from '../lib/supabase';
+import { supabaseAdmin } from '../lib/supabase';
 import {
   UserPlus, Building2, BookOpen, ShieldCheck, Users,
   Trash2, Copy, Check, Eye, EyeOff, RefreshCw,
@@ -38,7 +38,7 @@ export default function AdminPage() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [search, setSearch] = useState('');
 
-  // Create form state
+  // Create form
   const [newRole, setNewRole] = useState('organization');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -52,44 +52,33 @@ export default function AdminPage() {
   const [expandedId, setExpandedId] = useState(null);
   const [expandedData, setExpandedData] = useState(null);
 
-  useEffect(function() {
+  useEffect(() => {
     loadAll();
-    // eslint-disable-next-line
   }, []);
 
+  // ── Load all profiles using service role (bypasses RLS) ──
   async function loadAll() {
-    // Safety timeout — never hang longer than 8 seconds
-    var timedOut = false;
-    var timer = setTimeout(function() {
-      timedOut = true;
-      console.warn('loadAll timed out');
-      setDataLoaded(true);
-    }, 8000);
-
     try {
-      var result = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (timedOut) return; // Already resolved via timeout
-      clearTimeout(timer);
-
-      var all = (result && result.data) ? result.data : [];
-
-      if (result && result.error) {
-        console.error('Profiles error:', result.error);
+      if (error) {
+        console.error('Load error:', error);
       }
 
-      setStudents(all.filter(function(p) { return p.role === 'student'; }));
-      setOrgs(all.filter(function(p) { return p.role === 'organization'; }));
-      setSupervisors(all.filter(function(p) { return p.role === 'supervisor' || p.role === 'coordinator'; }));
+      const all = data || [];
+      setStudents(all.filter(p => p.role === 'student'));
+      setOrgs(all.filter(p => p.role === 'organization'));
+      setSupervisors(all.filter(p => p.role === 'supervisor' || p.role === 'coordinator'));
     } catch (err) {
-      if (timedOut) return;
-      clearTimeout(timer);
       console.error('Load error:', err);
     }
     setDataLoaded(true);
   }
 
-  // ── Create account ──
+  // ── Create account using service role (auto-confirms, no email sent) ──
   function resetForm() {
     setFullName('');
     setEmail('');
@@ -106,58 +95,41 @@ export default function AdminPage() {
     if (password.length < 6) return toast.error('Password must be at least 6 characters');
 
     setCreating(true);
-
-    var supabaseUrl = 'https://tswpcrejjlpkcfdbzjio.supabase.co';
-    var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzd3BjcmVqamxwa2NmZGJ6amlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNDc4MDEsImV4cCI6MjA4NjkyMzgwMX0.enA3lhX72jCEvaAdigFOEBORmWvGK36MB6aHLISR6CU';
-
-    // Safety timeout — if anything hangs for more than 10 seconds, force complete
-    var safetyTimer = setTimeout(function() {
-      setCreating(false);
-      toast.success('Account likely created. Refreshing list...');
-      setCreatedAccount({ fullName: fullName.trim(), email: email.trim(), password: password, role: newRole });
-      loadAll();
-    }, 10000);
-
     try {
-      var response = await fetch(supabaseUrl + '/auth/v1/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          password: password,
-          data: { full_name: fullName.trim(), role: newRole },
-        }),
+      // Service role: creates user + auto-confirms email + no session switch
+      const { data, error } = await supabaseAdmin.auth.admin.createUser({
+        email: email.trim(),
+        password: password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName.trim(), role: newRole },
       });
 
-      clearTimeout(safetyTimer);
+      if (error) throw error;
 
-      var result = await response.json();
+      // Wait for trigger to create profile, then update it
+      await new Promise(r => setTimeout(r, 1500));
 
-      if (!response.ok) {
-        throw new Error(result.msg || result.error_description || result.message || 'Signup failed');
+      if (data?.user?.id) {
+        await supabaseAdmin.from('profiles').upsert({
+          id: data.user.id,
+          email: email.trim(),
+          full_name: fullName.trim(),
+          role: newRole,
+        });
       }
 
-      if (result.identities && result.identities.length === 0) {
-        throw new Error('An account with this email already exists.');
-      }
-
-      // Success — show credentials immediately
-      setCreatedAccount({ fullName: fullName.trim(), email: email.trim(), password: password, role: newRole });
+      setCreatedAccount({ fullName: fullName.trim(), email: email.trim(), password, role: newRole });
       toast.success(newRole.charAt(0).toUpperCase() + newRole.slice(1) + ' account created!');
-      setCreating(false);
-
-      // Refresh list in background after a delay (let trigger create the profile)
-      setTimeout(function() { loadAll(); }, 2000);
-
+      loadAll();
     } catch (err) {
-      clearTimeout(safetyTimer);
       console.error('Create error:', err);
-      toast.error(err.message || 'Failed to create account');
-      setCreating(false);
+      if (err.message && err.message.includes('already been registered')) {
+        toast.error('An account with this email already exists.');
+      } else {
+        toast.error(err.message || 'Failed to create account');
+      }
     }
+    setCreating(false);
   }
 
   function copyCredentials() {
@@ -171,7 +143,7 @@ export default function AdminPage() {
       'Email: ' + createdAccount.email,
       'Password: ' + createdAccount.password,
       '',
-      'Sign in at: ' + baseUrl + '/login',
+      'Sign in at: ' + baseUrl + '/#/login',
     ].join('\n');
 
     navigator.clipboard.writeText(text).then(() => {
@@ -181,22 +153,24 @@ export default function AdminPage() {
     }).catch(() => toast.error('Copy failed'));
   }
 
-  // ── Delete account ──
+  // ── Delete account using service role ──
   async function handleDelete(id, name) {
     if (!window.confirm('Remove "' + name + '" from the system?')) return;
     try {
-      const { error } = await supabase.from('profiles').delete().eq('id', id);
-      if (error) throw error;
+      // Delete profile first
+      await supabaseAdmin.from('profiles').delete().eq('id', id);
+      // Then delete auth user
+      await supabaseAdmin.auth.admin.deleteUser(id);
       toast.success('Account removed');
       setExpandedId(null);
       loadAll();
     } catch (err) {
       console.error('Delete error:', err);
-      toast.error('Failed to remove. Try deleting from Supabase dashboard.');
+      toast.error('Failed to remove account');
     }
   }
 
-  // ── Expand row ──
+  // ── Expand row to see preferences ──
   async function toggleExpand(id, accRole) {
     if (expandedId === id) {
       setExpandedId(null);
@@ -208,10 +182,10 @@ export default function AdminPage() {
 
     try {
       if (accRole === 'student') {
-        const { data } = await supabase.from('student_preferences').select('*').eq('student_id', id).maybeSingle();
+        const { data } = await supabaseAdmin.from('student_preferences').select('*').eq('student_id', id).maybeSingle();
         setExpandedData(data || 'empty');
       } else if (accRole === 'organization') {
-        const { data } = await supabase.from('org_preferences').select('*').eq('org_id', id).maybeSingle();
+        const { data } = await supabaseAdmin.from('org_preferences').select('*').eq('org_id', id).maybeSingle();
         setExpandedData(data || 'empty');
       } else {
         setExpandedData('empty');
@@ -225,24 +199,11 @@ export default function AdminPage() {
   // ── Filter ──
   function filtered(list) {
     if (!search.trim()) return list;
-    var s = search.toLowerCase();
-    return list.filter(function(a) {
-      return (a.full_name || '').toLowerCase().indexOf(s) !== -1 ||
-        (a.email || '').toLowerCase().indexOf(s) !== -1 ||
-        (a.student_id || '').indexOf(s) !== -1;
-    });
-  }
-
-  // ── Guard ──
-  if (role !== 'coordinator') {
-    return (
-      <div className="card">
-        <div className="empty-state">
-          <div className="empty-state-icon"><ShieldCheck size={28} /></div>
-          <h3>Coordinator Only</h3>
-          <p>Account management is only accessible to coordinators.</p>
-        </div>
-      </div>
+    const s = search.toLowerCase();
+    return list.filter(a =>
+      (a.full_name || '').toLowerCase().includes(s) ||
+      (a.email || '').toLowerCase().includes(s) ||
+      (a.student_id || '').includes(s)
     );
   }
 
@@ -252,15 +213,13 @@ export default function AdminPage() {
     return (
       <div style={{ marginBottom: 6 }}>
         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{label}: </span>
-        {items.map(function(item) {
-          return (
-            <span key={item} style={{
-              display: 'inline-block', padding: '2px 8px', borderRadius: 5,
-              background: color + '12', color: color, fontSize: '0.74rem',
-              fontWeight: 500, marginRight: 5, marginBottom: 3,
-            }}>{item}</span>
-          );
-        })}
+        {items.map(item => (
+          <span key={item} style={{
+            display: 'inline-block', padding: '2px 8px', borderRadius: 5,
+            background: color + '12', color: color, fontSize: '0.74rem',
+            fontWeight: 500, marginRight: 5, marginBottom: 3,
+          }}>{item}</span>
+        ))}
       </div>
     );
   }
@@ -276,11 +235,11 @@ export default function AdminPage() {
           <div style={{ position: 'relative', width: 220 }}>
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input type="text" className="form-input" placeholder="Search..."
-              value={search} onChange={function(e) { setSearch(e.target.value); }}
+              value={search} onChange={e => setSearch(e.target.value)}
               style={{ paddingLeft: 30, height: 34, fontSize: '0.78rem' }}
             />
             {search && (
-              <button onClick={function() { setSearch(''); }} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
                 <X size={12} />
               </button>
             )}
@@ -310,14 +269,11 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {list.map(function(acc) {
-                  var isExpanded = expandedId === acc.id;
+                {list.map(acc => {
+                  const isExpanded = expandedId === acc.id;
                   return (
                     <React.Fragment key={acc.id}>
-                      <tr
-                        onClick={function() { toggleExpand(acc.id, acc.role); }}
-                        style={{ cursor: 'pointer' }}
-                      >
+                      <tr onClick={() => toggleExpand(acc.id, acc.role)} style={{ cursor: 'pointer' }}>
                         <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             {isExpanded ? <ChevronUp size={13} color="#14b8a6" /> : <ChevronDown size={13} color="var(--text-muted)" />}
@@ -331,8 +287,8 @@ export default function AdminPage() {
                             style={{ textTransform: 'capitalize', fontSize: '0.7rem' }}>{acc.role}</span>
                         </td>
                         <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{fmtDate(acc.created_at)}</td>
-                        <td onClick={function(e) { e.stopPropagation(); }}>
-                          <button className="btn btn-danger btn-sm" onClick={function() { handleDelete(acc.id, acc.full_name); }} title="Remove">
+                        <td onClick={e => e.stopPropagation()}>
+                          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(acc.id, acc.full_name)} title="Remove">
                             <Trash2 size={13} />
                           </button>
                         </td>
@@ -342,7 +298,6 @@ export default function AdminPage() {
                         <tr>
                           <td colSpan={roleType === 'student' ? 6 : 5} style={{ padding: 0 }}>
                             <div style={{ background: 'var(--bg-input)', padding: '16px 24px', borderTop: '1px solid var(--border)' }}>
-                              {/* Contact */}
                               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Mail size={12} />{acc.email}</span>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={12} />Joined {fmtDate(acc.created_at)}</span>
@@ -350,21 +305,18 @@ export default function AdminPage() {
                                 {acc.phone && <span>Phone: {acc.phone}</span>}
                               </div>
 
-                              {/* Loading prefs */}
                               {expandedData === null && (
                                 <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                                   <div className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} /> Loading...
                                 </div>
                               )}
 
-                              {/* Empty prefs */}
                               {expandedData === 'empty' && (
                                 <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', fontStyle: 'italic' }}>
                                   {acc.role === 'student' ? 'No preferences submitted yet.' : acc.role === 'organization' ? 'No preferences submitted yet.' : 'No additional details.'}
                                 </div>
                               )}
 
-                              {/* Student prefs */}
                               {expandedData && expandedData !== 'empty' && acc.role === 'student' && (
                                 <div>
                                   <div style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px', marginBottom: 8 }}>Preferences</div>
@@ -379,7 +331,6 @@ export default function AdminPage() {
                                 </div>
                               )}
 
-                              {/* Org prefs */}
                               {expandedData && expandedData !== 'empty' && acc.role === 'organization' && (
                                 <div>
                                   <div style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px', marginBottom: 8 }}>Preferences</div>
@@ -411,6 +362,19 @@ export default function AdminPage() {
     );
   }
 
+  // ── Guard ──
+  if (role !== 'coordinator') {
+    return (
+      <div className="card">
+        <div className="empty-state">
+          <div className="empty-state-icon"><ShieldCheck size={28} /></div>
+          <h3>Coordinator Only</h3>
+          <p>Account management is only accessible to coordinators.</p>
+        </div>
+      </div>
+    );
+  }
+
   // ═══════════════════════ RENDER ═══════════════════════
   return (
     <div>
@@ -419,15 +383,15 @@ export default function AdminPage() {
         <p className="page-subtitle">Create and manage all accounts in the system.</p>
       </div>
 
-      {/* ── Stats ── */}
+      {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
           { label: 'Students', count: students.length, icon: GraduationCap, color: '#14b8a6' },
           { label: 'Organizations', count: orgs.length, icon: Building2, color: '#3b82f6' },
-          { label: 'Supervisors', count: supervisors.filter(function(s) { return s.role === 'supervisor'; }).length, icon: BookOpen, color: '#f59e0b' },
+          { label: 'Supervisors', count: supervisors.filter(s => s.role === 'supervisor').length, icon: BookOpen, color: '#f59e0b' },
           { label: 'Total', count: students.length + orgs.length + supervisors.length, icon: Users, color: '#8b5cf6' },
-        ].map(function(s) {
-          var I = s.icon;
+        ].map(s => {
+          const I = s.icon;
           return (
             <div key={s.label} className="card" style={{ padding: '14px 16px', marginBottom: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -444,19 +408,19 @@ export default function AdminPage() {
         })}
       </div>
 
-      {/* ── Tabs ── */}
+      {/* Tabs */}
       <div style={{ display: 'flex', gap: 2, marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
         {[
           { id: 'create', label: 'Create Account', icon: UserPlus, count: null },
           { id: 'students', label: 'Students', icon: GraduationCap, count: students.length },
           { id: 'organizations', label: 'Organizations', icon: Building2, count: orgs.length },
           { id: 'supervisors', label: 'Supervisors', icon: BookOpen, count: supervisors.length },
-        ].map(function(t) {
-          var I = t.icon;
-          var active = activeTab === t.id;
+        ].map(t => {
+          const I = t.icon;
+          const active = activeTab === t.id;
           return (
             <button key={t.id}
-              onClick={function() { setActiveTab(t.id); setSearch(''); setExpandedId(null); }}
+              onClick={() => { setActiveTab(t.id); setSearch(''); setExpandedId(null); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px',
                 background: 'none', border: 'none',
@@ -478,7 +442,7 @@ export default function AdminPage() {
         })}
       </div>
 
-      {/* ═══ TAB: CREATE ═══ */}
+      {/* TAB: CREATE */}
       {activeTab === 'create' && (
         <div>
           {createdAccount ? (
@@ -486,7 +450,7 @@ export default function AdminPage() {
               <div className="card-header">
                 <div>
                   <div className="card-title" style={{ color: 'var(--success)' }}>Account Created Successfully</div>
-                  <div className="card-subtitle">Share these credentials with the user.</div>
+                  <div className="card-subtitle">Share these credentials with the user. They can log in immediately.</div>
                 </div>
               </div>
               <div style={{
@@ -512,11 +476,11 @@ export default function AdminPage() {
                 <div className="card-title">Create New Account</div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
-                {CREATABLE_ROLES.map(function(r) {
-                  var I = r.icon;
-                  var sel = newRole === r.id;
+                {CREATABLE_ROLES.map(r => {
+                  const I = r.icon;
+                  const sel = newRole === r.id;
                   return (
-                    <button key={r.id} type="button" onClick={function() { setNewRole(r.id); }} style={{
+                    <button key={r.id} type="button" onClick={() => setNewRole(r.id)} style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                       padding: '16px 12px',
                       background: sel ? 'var(--accent-light)' : 'var(--bg-input)',
@@ -538,13 +502,13 @@ export default function AdminPage() {
                   </label>
                   <input type="text" className="form-input" required
                     placeholder={newRole === 'organization' ? 'e.g. Botswana Innovation Hub' : 'e.g. Dr. John Smith'}
-                    value={fullName} onChange={function(e) { setFullName(e.target.value); }}
+                    value={fullName} onChange={e => setFullName(e.target.value)}
                   />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Email Address <span style={{ color: '#ef4444' }}>*</span></label>
                   <input type="email" className="form-input" required placeholder="user@email.com"
-                    value={email} onChange={function(e) { setEmail(e.target.value); }}
+                    value={email} onChange={e => setEmail(e.target.value)}
                   />
                 </div>
                 <div className="form-group">
@@ -552,19 +516,19 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <div style={{ position: 'relative', flex: 1 }}>
                       <input type={showPw ? 'text' : 'password'} className="form-input"
-                        value={password} onChange={function(e) { setPassword(e.target.value); }}
+                        value={password} onChange={e => setPassword(e.target.value)}
                         style={{ paddingRight: 40, fontFamily: showPw ? 'monospace' : 'inherit' }}
                       />
-                      <button type="button" onClick={function() { setShowPw(!showPw); }}
+                      <button type="button" onClick={() => setShowPw(!showPw)}
                         style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex' }}>
                         {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                     </div>
-                    <button type="button" className="btn btn-secondary" onClick={function() { setPassword(generatePassword()); }} title="Regenerate">
+                    <button type="button" className="btn btn-secondary" onClick={() => setPassword(generatePassword())} title="Regenerate">
                       <RefreshCw size={14} />
                     </button>
                   </div>
-                  <div className="form-hint">Share this with the user. They should change it after first login.</div>
+                  <div className="form-hint">Share this with the user. They can log in immediately.</div>
                 </div>
                 <button type="submit" className="btn btn-primary btn-lg" disabled={creating} style={{ minWidth: 200 }}>
                   {creating
@@ -578,13 +542,13 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ═══ TAB: STUDENTS ═══ */}
+      {/* TAB: STUDENTS */}
       {activeTab === 'students' && renderTable(filtered(students), 'student', 'Registered Students', 'No students have registered yet.', GraduationCap)}
 
-      {/* ═══ TAB: ORGANIZATIONS ═══ */}
+      {/* TAB: ORGANIZATIONS */}
       {activeTab === 'organizations' && renderTable(filtered(orgs), 'organization', 'Organizations', 'No organizations yet. Create one from the Create Account tab.', Building2)}
 
-      {/* ═══ TAB: SUPERVISORS ═══ */}
+      {/* TAB: SUPERVISORS */}
       {activeTab === 'supervisors' && renderTable(filtered(supervisors), 'supervisor', 'Supervisors & Coordinators', 'No supervisors yet. Create one from the Create Account tab.', BookOpen)}
     </div>
   );
