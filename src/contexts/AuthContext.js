@@ -11,34 +11,43 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Safety: if everything hangs for 4 seconds, just proceed
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 4000);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setLoading(false);
+      if (session?.user) {
+        fetchProfile(session.user.id).then(() => {
+          clearTimeout(safetyTimer);
+        });
+      } else {
+        clearTimeout(safetyTimer);
+        setLoading(false);
+      }
+    }).catch(() => {
+      clearTimeout(safetyTimer);
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) await fetchProfile(session.user.id);
-      else {
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+      } else {
         setProfile(null);
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function fetchProfile(userId) {
-    // Timeout: if profile fetch takes >5s, proceed without profile
-    // (use user_metadata as fallback)
-    var timedOut = false;
-    var timer = setTimeout(function() {
-      timedOut = true;
-      console.warn('Profile fetch timed out, using metadata fallback');
-      setLoading(false);
-    }, 5000);
-
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -46,21 +55,15 @@ export function AuthProvider({ children }) {
         .eq('id', userId)
         .single();
       
-      if (timedOut) return; // Already resolved via timeout
-      clearTimeout(timer);
-
       if (error && error.code === 'PGRST116') {
         setProfile(null);
       } else if (data) {
         setProfile(data);
       }
     } catch (err) {
-      if (timedOut) return;
-      clearTimeout(timer);
       console.error('Profile fetch error:', err);
-    } finally {
-      if (!timedOut) setLoading(false);
     }
+    setLoading(false);
   }
 
   async function signUp({ email, password, fullName, role }) {
