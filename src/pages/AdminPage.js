@@ -53,50 +53,37 @@ export default function AdminPage() {
   const [expandedData, setExpandedData] = useState(null);
 
   useEffect(function() {
-    if (user) {
-      loadAll();
-    }
+    loadAll();
     // eslint-disable-next-line
-  }, [user]);
+  }, []);
 
   async function loadAll() {
+    // Safety timeout — never hang longer than 8 seconds
+    var timedOut = false;
+    var timer = setTimeout(function() {
+      timedOut = true;
+      console.warn('loadAll timed out');
+      setDataLoaded(true);
+    }, 8000);
+
     try {
-      // Get current session token
-      var sessionResult = await supabase.auth.getSession();
-      var token = sessionResult && sessionResult.data && sessionResult.data.session
-        ? sessionResult.data.session.access_token
-        : null;
+      var result = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
 
-      if (!token) {
-        console.error('No session token');
-        setDataLoaded(true);
-        return;
-      }
+      if (timedOut) return; // Already resolved via timeout
+      clearTimeout(timer);
 
-      var response = await fetch(
-        'https://tswpcrejjlpkcfdbzjio.supabase.co/rest/v1/profiles?select=*&order=created_at.desc',
-        {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzd3BjcmVqamxwa2NmZGJ6amlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNDc4MDEsImV4cCI6MjA4NjkyMzgwMX0.enA3lhX72jCEvaAdigFOEBORmWvGK36MB6aHLISR6CU',
-            'Authorization': 'Bearer ' + token,
-          },
-        }
-      );
+      var all = (result && result.data) ? result.data : [];
 
-      var all = [];
-      if (response.ok) {
-        var json = await response.json();
-        if (Array.isArray(json)) {
-          all = json;
-        }
-      } else {
-        console.error('Profiles fetch failed:', response.status);
+      if (result && result.error) {
+        console.error('Profiles error:', result.error);
       }
 
       setStudents(all.filter(function(p) { return p.role === 'student'; }));
       setOrgs(all.filter(function(p) { return p.role === 'organization'; }));
       setSupervisors(all.filter(function(p) { return p.role === 'supervisor' || p.role === 'coordinator'; }));
     } catch (err) {
+      if (timedOut) return;
+      clearTimeout(timer);
       console.error('Load error:', err);
     }
     setDataLoaded(true);
