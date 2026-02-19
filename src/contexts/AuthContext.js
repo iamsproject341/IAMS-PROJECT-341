@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
@@ -10,16 +10,39 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Track the "real" user ID to ignore session hijacks from admin client
+  const realUserIdRef = useRef(null);
+
   useEffect(() => {
-    // Safety: if everything hangs for 4 seconds, just proceed
+    // Check if this is a fresh browser session (tab/window was closed and reopened)
+    // sessionStorage persists within a tab but clears when the browser/tab closes
+    const isExistingSession = sessionStorage.getItem('iams_active');
+
+    if (!isExistingSession) {
+      // Fresh visit — clear any saved Supabase session so user must log in again
+      sessionStorage.setItem('iams_active', 'true');
+
+      // Remove all Supabase auth keys from localStorage
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      setLoading(false);
+      return;
+    }
+    // Safety timeout — never hang more than 4 seconds
     const safetyTimer = setTimeout(() => {
       setLoading(false);
     }, 4000);
 
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id).then(() => {
+        realUserIdRef.current = session.user.id;
+        setUser(session.user);
+        fetchProfile(session.user.id).finally(() => {
           clearTimeout(safetyTimer);
         });
       } else {
@@ -31,10 +54,34 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === 'SIGNED_OUT') {
+        realUserIdRef.current = null;
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        // If we already have a "real" user logged in, ignore any session
+        // that's for a different user (caused by admin.createUser)
+        if (realUserIdRef.current && session.user.id !== realUserIdRef.current) {
+          console.warn('Ignoring session switch from admin client');
+          // Restore the real session
+          supabase.auth.getSession().then(({ data: { session: realSession } }) => {
+            if (realSession && realSession.user.id === realUserIdRef.current) {
+              setUser(realSession.user);
+            }
+          });
+          return;
+        }
+
+        // Normal sign-in
+        realUserIdRef.current = session.user.id;
+        setUser(session.user);
+        fetchProfile(session.user.id);
       } else {
         setProfile(null);
         setLoading(false);
@@ -81,13 +128,19 @@ export function AuthProvider({ children }) {
   async function signIn({ email, password }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    realUserIdRef.current = data.user.id;
     return data;
   }
 
   async function signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    realUserIdRef.current = null;
     setProfile(null);
+    setUser(null);
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
   }
 
   async function updateProfile(updates) {
