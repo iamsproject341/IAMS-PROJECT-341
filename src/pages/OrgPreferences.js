@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Save, CheckCircle2 } from 'lucide-react';
+import { Save, CheckCircle2, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const DESIRED_SKILLS = [
@@ -31,8 +31,16 @@ export default function OrgPreferences() {
   const [existing, setExisting] = useState(null);
   const [fetching, setFetching] = useState(true);
   const [errors, setErrors] = useState({});
+  const [hasMatches, setHasMatches] = useState(false);
 
-  useEffect(() => { loadPrefs(); }, []); // eslint-disable-line
+  useEffect(() => { loadPrefs(); checkMatches(); }, []); // eslint-disable-line
+
+  async function checkMatches() {
+    try {
+      const { data } = await supabase.from('matches').select('id').eq('org_id', user.id).eq('status', 'approved');
+      setHasMatches(data && data.length > 0);
+    } catch (err) { /* ignore */ }
+  }
 
   async function loadPrefs() {
     try {
@@ -166,9 +174,33 @@ export default function OrgPreferences() {
           <textarea className="form-textarea" placeholder="Brief description of your organization and the kind of projects available..." value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
         </div>
 
-        <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
-          {loading ? <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <><Save size={17} /> Save Preferences</>}
-        </button>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
+            {loading ? <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <><Save size={17} /> {existing ? 'Update Preferences' : 'Save Preferences'}</>}
+          </button>
+
+          {existing && !hasMatches && (
+            <button type="button" className="btn btn-danger" onClick={async () => {
+              if (!window.confirm('Delete your preferences? This cannot be undone.')) return;
+              try {
+                await supabase.from('org_preferences').delete().eq('id', existing.id);
+                toast.success('Preferences deleted');
+                setExisting(null); setDesiredSkills([]); setProjectTypes([]); setLocation(''); setNumStudents(1); setDescription('');
+              } catch (err) { toast.error('Failed to delete'); }
+            }}>
+              <Trash2 size={16} /> Delete Preferences
+            </button>
+          )}
+        </div>
+
+        {hasMatches && existing && (
+          <div style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <AlertTriangle size={16} color="#f59e0b" />
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              You have matched students. You can update preferences for future matching, but you cannot delete them while students are placed. Your current placements are not affected.
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );

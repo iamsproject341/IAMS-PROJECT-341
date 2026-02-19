@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Save, CheckCircle2 } from 'lucide-react';
+import { Save, CheckCircle2, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const SKILLS = [
@@ -31,11 +31,20 @@ export default function StudentPreferences() {
   const [loading, setLoading] = useState(false);
   const [existing, setExisting] = useState(null);
   const [fetching, setFetching] = useState(true);
+  const [hasMatch, setHasMatch] = useState(false);
 
   useEffect(() => {
     loadPrefs();
+    checkMatch();
     // eslint-disable-next-line
   }, []);
+
+  async function checkMatch() {
+    try {
+      const { data } = await supabase.from('matches').select('id').eq('student_id', user.id).eq('status', 'approved').maybeSingle();
+      setHasMatch(!!data);
+    } catch (err) { /* ignore */ }
+  }
 
   async function loadPrefs() {
     try {
@@ -192,9 +201,33 @@ export default function StudentPreferences() {
           />
         </div>
 
-        <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
-          {loading ? <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <><Save size={18} /> Save Preferences</>}
-        </button>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
+            {loading ? <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <><Save size={18} /> {existing ? 'Update Preferences' : 'Save Preferences'}</>}
+          </button>
+
+          {existing && !hasMatch && (
+            <button type="button" className="btn btn-danger" onClick={async () => {
+              if (!window.confirm('Delete your preferences? This cannot be undone.')) return;
+              try {
+                await supabase.from('student_preferences').delete().eq('id', existing.id);
+                toast.success('Preferences deleted');
+                setExisting(null); setSkills([]); setProjectTypes([]); setLocations([]); setAdditionalNotes('');
+              } catch (err) { toast.error('Failed to delete'); }
+            }}>
+              <Trash2 size={16} /> Delete Preferences
+            </button>
+          )}
+        </div>
+
+        {hasMatch && existing && (
+          <div style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <AlertTriangle size={16} color="#f59e0b" />
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              You have an approved placement. You can update preferences for future matching, but you cannot delete them while placed. Your current placement is not affected.
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );

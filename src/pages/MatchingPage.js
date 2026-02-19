@@ -247,15 +247,21 @@ export default function MatchingPage() {
                 ) : studentPrefs.length === 0 ? (
                   <div style={{ padding: '16px 20px', color: 'var(--text-muted)', fontSize: '0.82rem', fontStyle: 'italic' }}>No students have submitted preferences yet.</div>
                 ) : (
-                  <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                    {studentPrefs.map(sp => (
-                      <div key={sp.student_id} style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontSize: '0.82rem' }}>
-                        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{sp.student?.full_name}</div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: 2 }}>
-                          {(sp.skills || []).length} skills • {(sp.project_types || []).length} project types • {(sp.locations || []).join(', ')}
+                  <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                    {studentPrefs.map(sp => {
+                      var isMatched = approved.some(m => m.student_id === sp.student?.id);
+                      return (
+                        <div key={sp.student_id} style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontSize: '0.82rem', opacity: isMatched ? 0.5 : 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{sp.student?.full_name}</div>
+                            {isMatched && <span className="badge badge-green" style={{ fontSize: '0.62rem' }}>Matched</span>}
+                          </div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: 2 }}>
+                            {(sp.skills || []).length} skills • {(sp.project_types || []).length} project types • {(sp.locations || []).join(', ')}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -274,15 +280,27 @@ export default function MatchingPage() {
                 ) : orgPrefs.length === 0 ? (
                   <div style={{ padding: '16px 20px', color: 'var(--text-muted)', fontSize: '0.82rem', fontStyle: 'italic' }}>No organizations have submitted preferences yet.</div>
                 ) : (
-                  <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                    {orgPrefs.map(op => (
-                      <div key={op.org_id} style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontSize: '0.82rem' }}>
-                        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{op.org?.full_name}</div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: 2 }}>
-                          {(op.desired_skills || []).length} desired skills • Capacity: {op.num_students || 1} • {op.location || 'No location'}
+                  <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                    {orgPrefs.map(op => {
+                      var matchedCount = approved.filter(m => m.org_id === op.org?.id).length;
+                      var capacity = op.num_students || 1;
+                      var isFull = matchedCount >= capacity;
+                      return (
+                        <div key={op.org_id} style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontSize: '0.82rem', opacity: isFull ? 0.5 : 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{op.org?.full_name}</div>
+                            {matchedCount > 0 && (
+                              <span className={'badge ' + (isFull ? 'badge-red' : 'badge-amber')} style={{ fontSize: '0.62rem' }}>
+                                {matchedCount}/{capacity} filled
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: 2 }}>
+                            {(op.desired_skills || []).length} desired skills • Capacity: {capacity} • {op.location || 'No location'}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
