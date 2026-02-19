@@ -53,34 +53,52 @@ export default function AdminPage() {
   const [expandedData, setExpandedData] = useState(null);
 
   useEffect(function() {
-    if (role === 'coordinator') {
+    if (user) {
       loadAll();
-    } else if (role && role !== 'coordinator') {
-      // Role loaded but not coordinator - stop loading
-      setDataLoaded(true);
     }
-    // If role is undefined/null, profile is still loading - do nothing yet
-  }, [role]);
+    // eslint-disable-next-line
+  }, [user]);
 
   async function loadAll() {
     try {
-      var result = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Get current session token
+      var sessionResult = await supabase.auth.getSession();
+      var token = sessionResult && sessionResult.data && sessionResult.data.session
+        ? sessionResult.data.session.access_token
+        : null;
 
-      if (result.error) {
-        console.error('Load profiles error:', result.error);
+      if (!token) {
+        console.error('No session token');
+        setDataLoaded(true);
+        return;
       }
 
-      var all = result.data || [];
+      var response = await fetch(
+        'https://tswpcrejjlpkcfdbzjio.supabase.co/rest/v1/profiles?select=*&order=created_at.desc',
+        {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzd3BjcmVqamxwa2NmZGJ6amlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNDc4MDEsImV4cCI6MjA4NjkyMzgwMX0.enA3lhX72jCEvaAdigFOEBORmWvGK36MB6aHLISR6CU',
+            'Authorization': 'Bearer ' + token,
+          },
+        }
+      );
+
+      var all = [];
+      if (response.ok) {
+        var json = await response.json();
+        if (Array.isArray(json)) {
+          all = json;
+        }
+      } else {
+        console.error('Profiles fetch failed:', response.status);
+      }
+
       setStudents(all.filter(function(p) { return p.role === 'student'; }));
       setOrgs(all.filter(function(p) { return p.role === 'organization'; }));
       setSupervisors(all.filter(function(p) { return p.role === 'supervisor' || p.role === 'coordinator'; }));
     } catch (err) {
       console.error('Load error:', err);
     }
-    // ALWAYS set loaded — even if there was an error
     setDataLoaded(true);
   }
 
