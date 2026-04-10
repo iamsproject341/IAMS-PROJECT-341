@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabase';
 import {
-  Shuffle, Check, Users, Award, Trash2, GraduationCap, Building2,
+  Shuffle, Check, X, Users, Award, Trash2, GraduationCap, Building2,
   MapPin, Briefcase, Zap, Lightbulb, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -173,6 +173,16 @@ export default function MatchingPage() {
     } catch (err) {
       toast.error(err.message || 'Failed to approve');
     }
+  }
+
+  // ── Reject ──
+  // Dismisses a suggested pairing from the current results list without
+  // writing to the matches table. The student + org stay eligible so the
+  // next run of the algorithm can re-pair them with someone else.
+  async function rejectMatch(pair) {
+    if (!window.confirm('Reject this suggested match? ' + pair.student_name + ' and ' + pair.org_name + ' will remain available for future matching.')) return;
+    setResults(prev => prev.filter(r => !(r.student_id === pair.student_id && r.org_id === pair.org_id)));
+    toast.success('Rejected: ' + pair.student_name + ' → ' + pair.org_name);
   }
 
   // ── Remove ──
@@ -368,6 +378,9 @@ export default function MatchingPage() {
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="btn btn-primary btn-sm" onClick={() => approveMatch(pair)}>
                           <Check size={14} /> Approve
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => rejectMatch(pair)}>
+                          <X size={14} /> Reject
                         </button>
                         <button className="btn btn-ghost btn-sm" onClick={() => setExpandedResult(isExpanded ? null : idx)}>
                           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
