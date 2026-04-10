@@ -113,12 +113,14 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }
 
-  async function signUp({ email, password, fullName, role }) {
+  async function signUp({ email, password, fullName, studentId, role }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, role }
+        // student_id is read by the handle_new_user() DB trigger
+        // and written into the profiles row at creation time.
+        data: { full_name: fullName, role, student_id: studentId || null }
       }
     });
     if (error) throw error;
