@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import Logo from '../components/Logo';
 import PageTransition from '../components/PageTransition';
 import {
   LayoutDashboard, Settings, LogOut, BookOpen, Users, Shuffle,
-  Menu, X, GraduationCap, Building2, Bell, UserPlus,
+  Menu, X, GraduationCap, Building2, Bell, UserPlus, Sun, Moon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function DashboardLayout() {
   const { profile, user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -110,6 +112,14 @@ export default function DashboardLayout() {
             {role === 'supervisor' && 'Supervisor Portal'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              className="btn btn-ghost"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             <button className="btn btn-ghost" style={{ position: 'relative' }}><Bell size={18} /></button>
             <div className="sidebar-avatar" style={{ width: 32, height: 32, fontSize: '0.7rem' }}>{initials}</div>
           </div>
