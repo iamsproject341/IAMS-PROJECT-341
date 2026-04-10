@@ -48,7 +48,7 @@ export default function RegisterPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      await signUp({ email, password, fullName, role: 'student' });
+      await signUp({ email, password, fullName, studentId: studentId.trim(), role: 'student' });
       toast.success(
         (t) => (
           <div>
