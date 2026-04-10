@@ -27,7 +27,6 @@ export default function ProfilePage() {
       const payload = {
         full_name: fullName,
         phone,
-        student_id: studentId,
         role,
       };
 
@@ -97,7 +96,16 @@ export default function ProfilePage() {
               {role === 'student' && (
                 <div className="form-group">
                   <label className="form-label">Student ID</label>
-                  <input type="text" className="form-input" placeholder="e.g. 202103579" value={studentId} onChange={(e) => setStudentId(e.target.value)} />
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={studentId || ''}
+                    readOnly
+                    disabled
+                    title="Student ID is set at registration and cannot be changed"
+                    style={{ cursor: 'not-allowed', opacity: 0.7 }}
+                  />
+                  <div className="form-hint">Set at registration — contact a coordinator to change this.</div>
                 </div>
               )}
             </div>
