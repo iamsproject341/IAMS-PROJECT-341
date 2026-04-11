@@ -79,8 +79,17 @@ export default function LogbookPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!weekNumber || !weekStarting || !activitiesPerformed) {
-      return toast.error('Please fill in required fields');
+    const wn = parseInt(weekNumber, 10);
+    if (!weekNumber || Number.isNaN(wn) || wn < 1 || wn > 52) {
+      return toast.error('Week number must be between 1 and 52');
+    }
+    if (!weekStarting) return toast.error('Please pick the week-starting date');
+    if (new Date(weekStarting) > new Date()) return toast.error('Week-starting date cannot be in the future');
+    if (!activitiesPerformed.trim() || activitiesPerformed.trim().length < 20) {
+      return toast.error('Activities must be at least 20 characters');
+    }
+    if (skillsLearned && skillsLearned.trim().length < 10) {
+      return toast.error('Skills section must be at least 10 characters if filled in');
     }
     setSubmitting(true);
     try {
@@ -188,33 +197,39 @@ export default function LogbookPage() {
               <div className="form-group">
                 <label className="form-label">Week Number *</label>
                 <input type="number" className="form-input" placeholder="e.g. 1" min={1} max={52}
-                  value={weekNumber} onChange={e => setWeekNumber(e.target.value)} />
+                  value={weekNumber} onChange={e => setWeekNumber(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+                <div className="form-hint">A number between 1 and 52.</div>
               </div>
               <div className="form-group">
                 <label className="form-label">Week Starting Date *</label>
-                <input type="date" className="form-input" value={weekStarting} onChange={e => setWeekStarting(e.target.value)} />
+                <input type="date" className="form-input" value={weekStarting} max={new Date().toISOString().split('T')[0]} onChange={e => setWeekStarting(e.target.value)} />
+                <div className="form-hint">Pick the Monday of the week you're reporting on.</div>
               </div>
             </div>
             <div className="form-group">
               <label className="form-label">Activities Performed *</label>
               <textarea className="form-textarea" placeholder="Describe what you did this week..." value={activitiesPerformed}
-                onChange={e => setActivitiesPerformed(e.target.value)} rows={4} />
+                onChange={e => setActivitiesPerformed(e.target.value)} rows={4} maxLength={2000} />
+              <div className="form-hint">At least 20 characters. {activitiesPerformed.length}/2000</div>
             </div>
             <div className="form-group">
               <label className="form-label">Skills Learned</label>
               <textarea className="form-textarea" placeholder="What new skills or knowledge did you gain?" value={skillsLearned}
-                onChange={e => setSkillsLearned(e.target.value)} rows={3} />
+                onChange={e => setSkillsLearned(e.target.value)} rows={3} maxLength={1000} />
+              <div className="form-hint">Optional — list tools, techniques or concepts you picked up.</div>
             </div>
             <div className="form-row" style={{ marginBottom: 0 }}>
               <div className="form-group">
                 <label className="form-label">Challenges Faced</label>
                 <textarea className="form-textarea" placeholder="Any difficulties or obstacles..." value={challenges}
-                  onChange={e => setChallenges(e.target.value)} rows={3} />
+                  onChange={e => setChallenges(e.target.value)} rows={3} maxLength={1000} />
+                <div className="form-hint">Optional — be specific so your supervisor can help.</div>
               </div>
               <div className="form-group">
                 <label className="form-label">Plan for Next Week</label>
                 <textarea className="form-textarea" placeholder="What do you plan to work on next?" value={nextWeekPlan}
-                  onChange={e => setNextWeekPlan(e.target.value)} rows={3} />
+                  onChange={e => setNextWeekPlan(e.target.value)} rows={3} maxLength={1000} />
+                <div className="form-hint">Optional — short bullet list is fine.</div>
               </div>
             </div>
             <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: 8 }}>

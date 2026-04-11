@@ -8,6 +8,7 @@ import {
   Mail, Calendar,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { validateName, validateEmail, validatePassword, sanitizeNameInput } from '../utils/validators';
 
 const CREATABLE_ROLES = [
   { id: 'organization', label: 'Organization', icon: Building2, desc: 'Host students for attachment' },
@@ -90,9 +91,18 @@ export default function AdminPage() {
 
   async function handleCreate(e) {
     e.preventDefault();
-    if (!fullName.trim()) return toast.error('Enter a name');
-    if (!email.trim()) return toast.error('Enter an email');
-    if (password.length < 6) return toast.error('Password must be at least 6 characters');
+    // Organizations can have numbers/symbols in their names; people cannot.
+    if (newRole === 'organization') {
+      if (!fullName.trim() || fullName.trim().length < 2) return toast.error('Enter an organization name (min 2 characters)');
+      if (fullName.trim().length > 80) return toast.error('Organization name must be 80 characters or fewer');
+    } else {
+      const nameErr = validateName(fullName, 'Full name');
+      if (nameErr) return toast.error(nameErr);
+    }
+    const emailErr = validateEmail(email);
+    if (emailErr) return toast.error(emailErr);
+    const pwErr = validatePassword(password);
+    if (pwErr) return toast.error(pwErr);
 
     setCreating(true);
     try {
@@ -502,14 +512,22 @@ export default function AdminPage() {
                   </label>
                   <input type="text" className="form-input" required
                     placeholder={newRole === 'organization' ? 'e.g. Botswana Innovation Hub' : 'e.g. Dr. John Smith'}
-                    value={fullName} onChange={e => setFullName(e.target.value)}
+                    value={fullName}
+                    onChange={e => setFullName(newRole === 'organization' ? e.target.value.slice(0, 80) : sanitizeNameInput(e.target.value))}
+                    maxLength={80}
                   />
+                  <div className="form-hint">
+                    {newRole === 'organization'
+                      ? 'Full registered organization name.'
+                      : 'Letters, spaces, hyphens and apostrophes only — no numbers.'}
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Email Address <span style={{ color: '#ef4444' }}>*</span></label>
                   <input type="email" className="form-input" required placeholder="user@email.com"
                     value={email} onChange={e => setEmail(e.target.value)}
                   />
+                  <div className="form-hint">User will sign in with this email.</div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Temporary Password</label>

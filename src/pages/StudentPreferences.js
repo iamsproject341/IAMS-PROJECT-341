@@ -198,7 +198,9 @@ export default function StudentPreferences() {
             value={additionalNotes}
             onChange={(e) => setAdditionalNotes(e.target.value)}
             rows={4}
+            maxLength={1000}
           />
+          <div className="form-hint">Optional. Up to 1000 characters. {additionalNotes.length}/1000</div>
         </div>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>

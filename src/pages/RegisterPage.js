@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import { UserPlus, Eye, EyeOff, GraduationCap, Users, BookOpen, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { validateName, validateEmail, validateStudentId, validatePassword, sanitizeNameInput } from '../utils/validators';
 
 export default function RegisterPage() {
   const { signUp } = useAuth();
@@ -20,15 +21,14 @@ export default function RegisterPage() {
 
   function validate() {
     const e = {};
-    if (!fullName.trim()) e.fullName = 'Full name is required';
-    else if (fullName.trim().length < 2) e.fullName = 'Name must be at least 2 characters';
-    if (!studentId.trim()) e.studentId = 'Student ID is required';
-    else if (!/^\d{9}$/.test(studentId.trim())) e.studentId = 'Student ID must be exactly 9 digits';
-    if (!email.trim()) e.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Enter a valid email address';
-    if (!password) e.password = 'Password is required';
-    else if (password.length < 6) e.password = 'Minimum 6 characters';
-    else if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) e.password = 'Must contain letters and numbers';
+    const nameErr = validateName(fullName, 'Full name');
+    if (nameErr) e.fullName = nameErr;
+    const idErr = validateStudentId(studentId);
+    if (idErr) e.studentId = idErr;
+    const emailErr = validateEmail(email);
+    if (emailErr) e.email = emailErr;
+    const pwErr = validatePassword(password);
+    if (pwErr) e.password = pwErr;
     if (!confirmPw) e.confirmPw = 'Please confirm your password';
     else if (password !== confirmPw) e.confirmPw = 'Passwords do not match';
     setErrors(e);
@@ -83,8 +83,10 @@ export default function RegisterPage() {
               <label className="form-label">Full Name <span style={{ color: 'var(--error)' }}>*</span></label>
               <input type="text" className={`form-input ${errors.fullName ? 'input-error' : ''}`}
                 placeholder="e.g. John Doe" value={fullName}
-                onChange={(e) => { setFullName(e.target.value); clearError('fullName'); }} />
+                onChange={(e) => { setFullName(sanitizeNameInput(e.target.value)); clearError('fullName'); }}
+                maxLength={60} autoComplete="name" />
               {errors.fullName && <div className="form-error">{errors.fullName}</div>}
+              {!errors.fullName && <div className="form-hint">Letters, spaces, hyphens and apostrophes only — no numbers.</div>}
             </div>
             <div className="form-group">
               <label className="form-label">Student ID <span style={{ color: 'var(--error)' }}>*</span></label>
@@ -92,6 +94,7 @@ export default function RegisterPage() {
                 placeholder="e.g. 202103579 (9 digits)" value={studentId}
                 onChange={(e) => handleStudentIdChange(e.target.value)} />
               {errors.studentId && <div className="form-error">{errors.studentId}</div>}
+              {!errors.studentId && !studentId && <div className="form-hint">Enter your 9-digit university student ID (digits only).</div>}
               {!errors.studentId && studentId && <div className="form-hint">{studentId.length}/9 digits</div>}
             </div>
             <div className="form-group">
@@ -100,6 +103,7 @@ export default function RegisterPage() {
                 placeholder="you@email.com" value={email}
                 onChange={(e) => { setEmail(e.target.value); clearError('email'); }} autoComplete="email" />
               {errors.email && <div className="form-error">{errors.email}</div>}
+              {!errors.email && <div className="form-hint">We'll send a verification link to this address.</div>}
             </div>
             <div className="form-row">
               <div className="form-group">
@@ -115,9 +119,10 @@ export default function RegisterPage() {
                   </button>
                 </div>
                 {errors.password && <div className="form-error">{errors.password}</div>}
+                {!errors.password && <div className="form-hint">At least 6 characters, with letters and numbers.</div>}
               </div>
               <div className="form-group">
-                <label className="form-label">Confirm Password <span style={{ color: 'var(--error)' }}>*</span></label>
+                <label className="form-label">Confirm Password <span style={{ color: 'var(--error)' }}>*</span></label> <span style={{ color: 'var(--error)' }}>*</span></label>
                 <div style={{ position: 'relative' }}>
                   <input type={showConfirmPw ? 'text' : 'password'} className={`form-input ${errors.confirmPw ? 'input-error' : ''}`}
                     placeholder="Repeat password" value={confirmPw}

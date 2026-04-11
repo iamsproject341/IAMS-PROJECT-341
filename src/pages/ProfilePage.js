@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Save, User } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { validateName, validatePhone, sanitizeNameInput, sanitizePhoneInput } from '../utils/validators';
 
 export default function ProfilePage() {
   const { user, profile, updateProfile } = useAuth();
@@ -11,10 +12,17 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState(profile?.phone || '');
   const [studentId, setStudentId] = useState(profile?.student_id || '');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   async function handleSave(e) {
     e.preventDefault();
-    if (!fullName.trim()) return toast.error('Name is required');
+    const errs = {};
+    const nameErr = validateName(fullName, role === 'organization' ? 'Organization name' : 'Full name');
+    if (nameErr) errs.fullName = nameErr;
+    const phoneErr = validatePhone(phone, false);
+    if (phoneErr) errs.phone = phoneErr;
+    setErrors(errs);
+    if (Object.keys(errs).length) return toast.error('Please fix the highlighted fields');
     setLoading(true);
     try {
       // Check if profile exists
@@ -79,7 +87,12 @@ export default function ProfilePage() {
               <label className="form-label">
                 {role === 'organization' ? 'Organization Name' : 'Full Name'}
               </label>
-              <input type="text" className="form-input" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              <input type="text" className={`form-input ${errors.fullName ? 'input-error' : ''}`}
+                value={fullName}
+                onChange={(e) => { setFullName(sanitizeNameInput(e.target.value)); setErrors(p => ({ ...p, fullName: '' })); }}
+                maxLength={60} />
+              {errors.fullName && <div className="form-error">{errors.fullName}</div>}
+              {!errors.fullName && <div className="form-hint">Letters, spaces, hyphens and apostrophes only — no numbers.</div>}
             </div>
 
             <div className="form-group">
@@ -91,7 +104,11 @@ export default function ProfilePage() {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Phone Number</label>
-                <input type="tel" className="form-input" placeholder="+267..." value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <input type="tel" className={`form-input ${errors.phone ? 'input-error' : ''}`}
+                  placeholder="+267 71234567" value={phone}
+                  onChange={(e) => { setPhone(sanitizePhoneInput(e.target.value)); setErrors(p => ({ ...p, phone: '' })); }} />
+                {errors.phone && <div className="form-error">{errors.phone}</div>}
+                {!errors.phone && <div className="form-hint">Digits only, optional +country code (e.g. +267 71234567).</div>}
               </div>
               {role === 'student' && (
                 <div className="form-group">

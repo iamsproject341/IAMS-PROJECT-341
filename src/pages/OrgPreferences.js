@@ -171,7 +171,8 @@ export default function OrgPreferences() {
 
         <div className="card" style={{ marginBottom: 22 }}>
           <div className="card-title" style={{ marginBottom: 10 }}>Organization Description</div>
-          <textarea className="form-textarea" placeholder="Brief description of your organization and the kind of projects available..." value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+          <textarea className="form-textarea" placeholder="Brief description of your organization and the kind of projects available..." value={description} onChange={(e) => setDescription(e.target.value)} rows={4} maxLength={1500} />
+          <div className="form-hint">Optional but recommended — students see this when matching. {description.length}/1500</div>
         </div>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>

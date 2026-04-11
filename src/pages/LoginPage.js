@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import { LogIn, ShieldCheck, Users, BarChart3, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { validateEmail } from '../utils/validators';
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -16,8 +17,8 @@ export default function LoginPage() {
 
   function validate() {
     const e = {};
-    if (!email.trim()) e.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Enter a valid email address';
+    const emailErr = validateEmail(email);
+    if (emailErr) e.email = emailErr;
     if (!password) e.password = 'Password is required';
     else if (password.length < 6) e.password = 'Password must be at least 6 characters';
     setErrors(e);
@@ -56,6 +57,7 @@ export default function LoginPage() {
                 onChange={(e) => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
                 autoComplete="email" />
               {errors.email && <div className="form-error">{errors.email}</div>}
+              {!errors.email && <div className="form-hint">The email address you registered with.</div>}
             </div>
             <div className="form-group">
               <label className="form-label">Password <span style={{ color: 'var(--error)' }}>*</span></label>
