@@ -122,7 +122,7 @@ export default function RegisterPage() {
                 {!errors.password && <div className="form-hint">At least 6 characters, with letters and numbers.</div>}
               </div>
               <div className="form-group">
-                <label className="form-label">Confirm Password <span style={{ color: 'var(--error)' }}>*</span></label> <span style={{ color: 'var(--error)' }}>*</span></label>
+                <label className="form-label">Confirm Password <span style={{ color: 'var(--error)' }}>*</span></label>
                 <div style={{ position: 'relative' }}>
                   <input type={showConfirmPw ? 'text' : 'password'} className={`form-input ${errors.confirmPw ? 'input-error' : ''}`}
                     placeholder="Repeat password" value={confirmPw}
