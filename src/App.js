@@ -16,6 +16,11 @@ import LogbookPage from './pages/LogbookPage';
 import MatchingPage from './pages/MatchingPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
+import SupervisorReportPage from './pages/SupervisorReportPage';
+import UniAssessmentPage from './pages/UniAssessmentPage';
+import StudentReportPage from './pages/StudentReportPage';
+import LogbookViewerPage from './pages/LogbookViewerPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -76,6 +81,11 @@ function App() {
             <Route path="matching" element={<MatchingPage />} />
             <Route path="admin" element={<AdminPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="supervisor-report" element={<SupervisorReportPage />} />
+            <Route path="uni-assessments" element={<UniAssessmentPage />} />
+            <Route path="final-report" element={<StudentReportPage />} />
+            <Route path="student-logbooks" element={<LogbookViewerPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
