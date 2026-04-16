@@ -6,9 +6,11 @@ import Logo from '../components/Logo';
 import PageTransition from '../components/PageTransition';
 import {
   LayoutDashboard, Settings, LogOut, BookOpen, Users, Shuffle,
-  Menu, X, GraduationCap, Building2, Bell, UserPlus, Sun, Moon,
+  Menu, X, GraduationCap, Building2, UserPlus, Sun, Moon,
+  ClipboardCheck, FileText, School, BarChart3, FolderOpen,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import NotificationBell from '../components/NotificationBell';
 
 export default function DashboardLayout() {
   const { profile, user, signOut } = useAuth();
@@ -34,21 +36,28 @@ export default function DashboardLayout() {
       { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/dashboard/preferences', label: 'My Preferences', icon: Settings },
       { path: '/dashboard/logbook', label: 'Logbook', icon: BookOpen },
+      { path: '/dashboard/final-report', label: 'Final Report', icon: FileText },
       { path: '/dashboard/profile', label: 'Profile', icon: GraduationCap },
     ],
     organization: [
       { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/dashboard/org-preferences', label: 'Our Preferences', icon: Settings },
+      { path: '/dashboard/student-logbooks', label: 'Student Logbooks', icon: FolderOpen },
+      { path: '/dashboard/supervisor-report', label: 'Assess Students', icon: ClipboardCheck },
       { path: '/dashboard/profile', label: 'Profile', icon: Building2 },
     ],
     coordinator: [
       { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/dashboard/matching', label: 'Matching', icon: Shuffle },
+      { path: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
+      { path: '/dashboard/student-logbooks', label: 'Logbooks', icon: FolderOpen },
       { path: '/dashboard/admin', label: 'Manage Accounts', icon: UserPlus },
       { path: '/dashboard/profile', label: 'Profile', icon: Users },
     ],
     supervisor: [
       { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/dashboard/uni-assessments', label: 'Visit Assessments', icon: School },
+      { path: '/dashboard/student-logbooks', label: 'Student Logbooks', icon: FolderOpen },
       { path: '/dashboard/profile', label: 'Profile', icon: Users },
     ],
   };
@@ -120,7 +129,7 @@ export default function DashboardLayout() {
             >
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <button className="btn btn-ghost" style={{ position: 'relative' }}><Bell size={18} /></button>
+            <NotificationBell userId={user?.id} />
             <div className="sidebar-avatar" style={{ width: 32, height: 32, fontSize: '0.7rem' }}>{initials}</div>
           </div>
         </header>
