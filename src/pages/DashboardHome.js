@@ -231,13 +231,36 @@ export default function DashboardHome() {
 
       {/* ── Supervisor ── */}
       {role === 'supervisor' && (
-        <AnimatedCard delay={0.1} className="card">
-          <div className="empty-state" style={{ padding: '40px 24px' }}>
-            <div className="empty-state-icon"><BookOpen size={28} /></div>
-            <h3>Supervisor Dashboard</h3>
-            <p>Assessment and report features will be available in Release 2. Your account is set up and ready.</p>
+        <>
+          <div className="stat-grid">
+            <AnimatedCard delay={0.05} className="stat-card">
+              <div className="stat-icon blue"><GraduationCap size={20} /></div>
+              <div>
+                <div className="stat-value"><CountUp end={stats.placedStudents || 0} /></div>
+                <div className="stat-label">Placed Students</div>
+              </div>
+            </AnimatedCard>
+            <AnimatedCard delay={0.13} className="stat-card">
+              <div className="stat-icon teal"><CheckCircle2 size={20} /></div>
+              <div>
+                <div className="stat-value"><CountUp end={stats.assessmentsDone || 0} /></div>
+                <div className="stat-label">Assessments Recorded</div>
+              </div>
+            </AnimatedCard>
           </div>
-        </AnimatedCard>
+          <AnimatedCard delay={0.3} className="card action-card" onClick={() => navigate('/dashboard/uni-assessments')}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div className="stat-icon blue"><BookOpen size={20} /></div>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Record a Visit Assessment</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>After visiting a student at their attachment site, capture your assessment</div>
+                </div>
+              </div>
+              <ArrowRight size={18} color="var(--accent)" />
+            </div>
+          </AnimatedCard>
+        </>
       )}
     </div>
   );
