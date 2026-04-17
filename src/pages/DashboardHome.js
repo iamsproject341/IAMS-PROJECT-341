@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatedCard, CountUp } from '../components/AnimatedCard';
 import {
   GraduationCap, Building2, BookOpen, Shuffle,
-  ArrowRight, CheckCircle2, Clock, AlertCircle,
+  ArrowRight, CheckCircle2, Clock, AlertCircle, School,
 } from 'lucide-react';
 
 export default function DashboardHome() {
@@ -33,7 +33,7 @@ export default function DashboardHome() {
         const [prefs, logbooks, match] = await Promise.all([
           supabase.from('student_preferences').select('id').eq('student_id', user.id),
           supabase.from('logbooks').select('id', { count: 'exact', head: true }).eq('student_id', user.id),
-          supabase.from('matches').select('*, org:profiles!matches_org_id_fkey(full_name, email)').eq('student_id', user.id).eq('status', 'approved').maybeSingle(),
+          supabase.from('matches').select('*, org:profiles!matches_org_id_fkey(full_name, email), supervisor:profiles!matches_supervisor_id_fkey(full_name, email)').eq('student_id', user.id).eq('status', 'approved').maybeSingle(),
         ]);
         setStats({ prefsSet: prefs.data?.length > 0, logbookCount: logbooks.count || 0, match: match.data });
       } else if (role === 'organization') {
@@ -147,6 +147,29 @@ export default function DashboardHome() {
               </div>
               <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: 4 }}>
                 You have been matched with this organization. Head to your logbook to start documenting your weekly progress.
+              </div>
+
+              {/* University supervisor row */}
+              <div style={{
+                marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f59e0b15', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <School size={16} color="#f59e0b" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 2 }}>University Supervisor</div>
+                  {stats.match.supervisor ? (
+                    <>
+                      <div style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--text-primary)' }}>{stats.match.supervisor.full_name}</div>
+                      <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>{stats.match.supervisor.email}</div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      Not yet assigned — your coordinator will assign one shortly.
+                    </div>
+                  )}
+                </div>
               </div>
             </AnimatedCard>
           )}

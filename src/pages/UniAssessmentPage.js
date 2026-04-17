@@ -33,7 +33,7 @@ export default function UniAssessmentPage() {
 
   async function loadData() {
     try {
-      // All placed students (university supervisors can visit any matched student)
+      // Only show students who have been assigned to THIS supervisor by the coordinator
       const { data: matches } = await supabase
         .from('matches')
         .select(`
@@ -41,7 +41,8 @@ export default function UniAssessmentPage() {
           student:profiles!matches_student_id_fkey(id, full_name, email, student_id),
           org:profiles!matches_org_id_fkey(full_name)
         `)
-        .eq('status', 'approved');
+        .eq('status', 'approved')
+        .eq('supervisor_id', user.id);
 
       setStudents(matches || []);
 
@@ -255,7 +256,7 @@ export default function UniAssessmentPage() {
             )}
             {students.length === 0 && (
               <p style={{ marginTop: 8, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                No approved student placements exist yet.
+                No students have been assigned to you yet. The coordinator assigns supervisors to students from the Matching page.
               </p>
             )}
           </div>

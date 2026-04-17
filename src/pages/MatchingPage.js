@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabase';
 import {
   Shuffle, Check, X, Users, Award, Trash2, GraduationCap, Building2,
-  MapPin, Briefcase, Zap, Lightbulb, ChevronDown, ChevronUp,
+  MapPin, Briefcase, Zap, Lightbulb, ChevronDown, ChevronUp, School, UserCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -16,6 +16,8 @@ export default function MatchingPage() {
   const [orgPrefs, setOrgPrefs] = useState([]);
   const [results, setResults] = useState([]);
   const [approvedMatches, setApprovedMatches] = useState([]);
+  const [supervisors, setSupervisors] = useState([]);
+  const [assigning, setAssigning] = useState({}); // { [matchId]: true } while saving
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [tab, setTab] = useState('run');
@@ -28,20 +30,25 @@ export default function MatchingPage() {
   async function loadData() {
     setFetching(true);
     try {
-      // Load all preferences + existing matches using admin client
-      const [spRes, opRes, mRes] = await Promise.all([
+      // Load all preferences + existing matches + supervisors using admin client
+      const [spRes, opRes, mRes, supRes] = await Promise.all([
         supabaseAdmin.from('student_preferences')
           .select('*, student:profiles!student_preferences_student_id_fkey(id, full_name, email)'),
         supabaseAdmin.from('org_preferences')
           .select('*, org:profiles!org_preferences_org_id_fkey(id, full_name, email)'),
         supabaseAdmin.from('matches')
-          .select('*, student:profiles!matches_student_id_fkey(full_name, email), org:profiles!matches_org_id_fkey(full_name, email)')
+          .select('*, student:profiles!matches_student_id_fkey(full_name, email), org:profiles!matches_org_id_fkey(full_name, email), supervisor:profiles!matches_supervisor_id_fkey(id, full_name, email)')
           .order('score', { ascending: false }),
+        supabaseAdmin.from('profiles')
+          .select('id, full_name, email')
+          .eq('role', 'supervisor')
+          .order('full_name'),
       ]);
 
       setStudentPrefs(spRes.data || []);
       setOrgPrefs(opRes.data || []);
       setApprovedMatches(mRes.data || []);
+      setSupervisors(supRes.data || []);
     } catch (err) {
       console.error('Load error:', err);
     }
@@ -167,7 +174,7 @@ export default function MatchingPage() {
 
       // Reload approved matches
       const { data } = await supabaseAdmin.from('matches')
-        .select('*, student:profiles!matches_student_id_fkey(full_name, email), org:profiles!matches_org_id_fkey(full_name, email)')
+        .select('*, student:profiles!matches_student_id_fkey(full_name, email), org:profiles!matches_org_id_fkey(full_name, email), supervisor:profiles!matches_supervisor_id_fkey(id, full_name, email)')
         .order('score', { ascending: false });
       setApprovedMatches(data || []);
     } catch (err) {
@@ -194,6 +201,80 @@ export default function MatchingPage() {
       setApprovedMatches(prev => prev.filter(m => m.id !== matchId));
     } catch (err) {
       toast.error('Failed to remove');
+    }
+  }
+
+  // ── Assign / change / clear supervisor on an approved match ──
+  async function assignSupervisor(matchId, supervisorId) {
+    setAssigning(prev => ({ ...prev, [matchId]: true }));
+    try {
+      const newId = supervisorId || null;
+      const { error } = await supabaseAdmin
+        .from('matches')
+        .update({ supervisor_id: newId })
+        .eq('id', matchId);
+      if (error) throw error;
+
+      // Update locally so the UI reflects immediately
+      const sup = newId ? supervisors.find(s => s.id === newId) : null;
+      setApprovedMatches(prev => prev.map(m =>
+        m.id === matchId
+          ? { ...m, supervisor_id: newId, supervisor: sup ? { id: sup.id, full_name: sup.full_name, email: sup.email } : null }
+          : m
+      ));
+      toast.success(newId ? 'Supervisor assigned' : 'Supervisor cleared');
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Failed to assign supervisor');
+    } finally {
+      setAssigning(prev => { const n = { ...prev }; delete n[matchId]; return n; });
+    }
+  }
+
+  // ── Auto-distribute supervisors evenly across unassigned approved matches ──
+  async function autoDistributeSupervisors() {
+    const unassigned = approvedMatches.filter(m => m.status === 'approved' && !m.supervisor_id);
+    if (unassigned.length === 0) { toast.error('No unassigned matches to distribute.'); return; }
+    if (supervisors.length === 0) { toast.error('No supervisors exist. Create one from Manage Accounts first.'); return; }
+    if (!window.confirm('Distribute ' + unassigned.length + ' unassigned student' + (unassigned.length > 1 ? 's' : '') + ' evenly across ' + supervisors.length + ' supervisor' + (supervisors.length > 1 ? 's' : '') + '?')) return;
+
+    // Start each supervisor's workload at their existing count so distribution stays balanced globally.
+    const load = {};
+    for (const s of supervisors) load[s.id] = 0;
+    for (const m of approvedMatches) {
+      if (m.supervisor_id && load[m.supervisor_id] !== undefined) load[m.supervisor_id]++;
+    }
+
+    const updates = [];
+    for (const m of unassigned) {
+      // Pick the supervisor with the smallest current load
+      let pickId = supervisors[0].id;
+      for (const s of supervisors) {
+        if (load[s.id] < load[pickId]) pickId = s.id;
+      }
+      updates.push({ matchId: m.id, supervisorId: pickId });
+      load[pickId]++;
+    }
+
+    try {
+      // Sequential updates — the volume is small and it keeps errors easy to trace
+      for (const u of updates) {
+        const { error } = await supabaseAdmin
+          .from('matches')
+          .update({ supervisor_id: u.supervisorId })
+          .eq('id', u.matchId);
+        if (error) throw error;
+      }
+
+      // Reload so relations are fresh
+      const { data } = await supabaseAdmin.from('matches')
+        .select('*, student:profiles!matches_student_id_fkey(full_name, email), org:profiles!matches_org_id_fkey(full_name, email), supervisor:profiles!matches_supervisor_id_fkey(id, full_name, email)')
+        .order('score', { ascending: false });
+      setApprovedMatches(data || []);
+      toast.success('Distributed ' + updates.length + ' student' + (updates.length > 1 ? 's' : '') + ' across supervisors');
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Auto-distribute failed');
     }
   }
 
@@ -490,31 +571,92 @@ export default function MatchingPage() {
         ) : (
           <div className="card">
             <div className="card-header">
-              <div className="card-title">Approved Placements ({approved.length})</div>
+              <div>
+                <div className="card-title">Approved Placements ({approved.length})</div>
+                <div className="card-subtitle">
+                  Assign a university supervisor to each student — supervisors only see students assigned to them.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span className="badge badge-amber" style={{ fontSize: '0.7rem' }}>
+                  <UserCheck size={11} /> {approved.filter(m => !m.supervisor_id).length} unassigned
+                </span>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={autoDistributeSupervisors}
+                  disabled={supervisors.length === 0 || approved.every(m => m.supervisor_id)}
+                  title={supervisors.length === 0 ? 'Create supervisor accounts first' : 'Evenly distribute unassigned students across supervisors'}
+                >
+                  <Shuffle size={13} /> Auto-Distribute
+                </button>
+              </div>
             </div>
+
+            {supervisors.length === 0 && (
+              <div style={{
+                margin: '0 20px 16px', padding: '10px 14px',
+                background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+                borderRadius: 8, fontSize: '0.8rem', color: 'var(--text-secondary)',
+              }}>
+                <School size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6, color: '#f59e0b' }} />
+                No university supervisors exist yet. Create supervisor accounts from <strong>Manage Accounts</strong> before assigning.
+              </div>
+            )}
+
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Student</th><th>Organization</th><th>Score</th><th>Status</th><th>Action</th></tr></thead>
+                <thead><tr><th>Student</th><th>Organization</th><th>University Supervisor</th><th>Score</th><th>Action</th></tr></thead>
                 <tbody>
-                  {approved.map(m => (
-                    <tr key={m.id}>
-                      <td>
-                        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{m.student?.full_name}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{m.student?.email}</div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{m.org?.full_name}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{m.org?.email}</div>
-                      </td>
-                      <td><span className="badge badge-teal"><Award size={10} /> {m.score}/100</span></td>
-                      <td><span className="badge badge-green">Approved</span></td>
-                      <td>
-                        <button className="btn btn-danger btn-sm" onClick={() => removeMatch(m.id)}>
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {approved.map(m => {
+                    const isSaving = !!assigning[m.id];
+                    const hasSup = !!m.supervisor_id;
+                    return (
+                      <tr key={m.id}>
+                        <td>
+                          <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{m.student?.full_name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{m.student?.email}</div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{m.org?.full_name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{m.org?.email}</div>
+                        </td>
+                        <td style={{ minWidth: 200 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <select
+                              value={m.supervisor_id || ''}
+                              onChange={(e) => assignSupervisor(m.id, e.target.value)}
+                              disabled={isSaving || supervisors.length === 0}
+                              style={{
+                                width: '100%', padding: '6px 8px',
+                                background: 'var(--bg-input)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid ' + (hasSup ? 'rgba(20,184,166,0.4)' : 'var(--border)'),
+                                borderRadius: 6, fontSize: '0.8rem',
+                                cursor: isSaving ? 'wait' : 'pointer',
+                              }}
+                            >
+                              <option value="">— Unassigned —</option>
+                              {supervisors.map(s => (
+                                <option key={s.id} value={s.id}>{s.full_name || s.email}</option>
+                              ))}
+                            </select>
+                            {isSaving && <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />}
+                          </div>
+                          {hasSup && !isSaving && (
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 3 }}>
+                              {m.supervisor?.email}
+                            </div>
+                          )}
+                        </td>
+                        <td><span className="badge badge-teal"><Award size={10} /> {m.score}/100</span></td>
+                        <td>
+                          <button className="btn btn-danger btn-sm" onClick={() => removeMatch(m.id)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -32,8 +32,20 @@ export default function LogbookViewerPage() {
           .eq('org_id', user.id)
           .eq('status', 'approved');
         studentList = (data || []).map(m => m.student).filter(Boolean);
-      } else if (role === 'supervisor' || role === 'coordinator') {
-        // Supervisors & coordinators see all placed students
+      } else if (role === 'supervisor') {
+        // University supervisors see only students the coordinator has assigned to them
+        const { data } = await supabase
+          .from('matches')
+          .select(`
+            id, student_id,
+            student:profiles!matches_student_id_fkey(id, full_name, email, student_id),
+            org:profiles!matches_org_id_fkey(full_name)
+          `)
+          .eq('status', 'approved')
+          .eq('supervisor_id', user.id);
+        studentList = (data || []).map(m => ({ ...m.student, orgName: m.org?.full_name })).filter(s => s?.id);
+      } else if (role === 'coordinator') {
+        // Coordinators see every placed student
         const { data } = await supabase
           .from('matches')
           .select(`
