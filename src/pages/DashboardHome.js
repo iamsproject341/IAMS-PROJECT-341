@@ -52,6 +52,29 @@ export default function DashboardHome() {
           prefsSet: prefs.data?.length > 0,
           matchedStudents: students,
         });
+      } else if (role === 'supervisor') {
+        // Students assigned to this supervisor by the coordinator, plus count of visits logged
+        const [placed, assmts] = await Promise.all([
+          supabase
+            .from('matches')
+            .select('id, student_id, student:profiles!matches_student_id_fkey(id, full_name, email, student_id), org:profiles!matches_org_id_fkey(full_name)')
+            .eq('supervisor_id', user.id)
+            .eq('status', 'approved'),
+          supabase
+            .from('university_assessments')
+            .select('id', { count: 'exact', head: true })
+            .eq('supervisor_id', user.id),
+        ]);
+        const placedList = (placed.data || []).map(m => ({
+          matchId: m.id,
+          student: m.student,
+          orgName: m.org?.full_name || 'Organization',
+        }));
+        setStats({
+          placedStudents: placedList.length,
+          assessmentsDone: assmts.count || 0,
+          placedList,
+        });
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -271,6 +294,89 @@ export default function DashboardHome() {
               </div>
             </AnimatedCard>
           </div>
+
+          {/* Assigned students list */}
+          <AnimatedCard delay={0.2} className="card" style={{ marginBottom: 16 }}>
+            <div className="card-header">
+              <div>
+                <div className="card-title">My Assigned Students</div>
+                <div className="card-subtitle">
+                  {stats.placedStudents > 0
+                    ? 'Students the coordinator has placed under your supervision'
+                    : 'You have not been assigned any students yet'}
+                </div>
+              </div>
+              {stats.placedStudents > 0 && (
+                <span className="badge badge-teal">{stats.placedStudents} student{stats.placedStudents === 1 ? '' : 's'}</span>
+              )}
+            </div>
+
+            {stats.placedStudents === 0 ? (
+              <div style={{ padding: '24px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                Once the coordinator assigns students to you from the Matching page, they'll appear here.
+              </div>
+            ) : (
+              <div>
+                {(stats.placedList || []).map((item, idx) => (
+                  <div
+                    key={item.matchId}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 20px',
+                      borderTop: idx === 0 ? '1px solid var(--border)' : '1px solid var(--border)',
+                    }}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 10,
+                      background: '#14b8a615',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <GraduationCap size={16} color="#14b8a6" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                        {item.student?.full_name || 'Unknown student'}
+                        {item.student?.student_id && (
+                          <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.78rem', marginLeft: 8 }}>
+                            ({item.student.student_id})
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Building2 size={11} /> {item.orgName}
+                        </span>
+                        {item.student?.email && (
+                          <>
+                            <span style={{ opacity: 0.5 }}>•</span>
+                            <span>{item.student.email}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => navigate('/dashboard/student-logbooks')}
+                        title="View this student's logbook entries"
+                      >
+                        <BookOpen size={13} /> Logbook
+                      </button>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => navigate('/dashboard/uni-assessments')}
+                        title="Record a visit assessment for this student"
+                      >
+                        Assess
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </AnimatedCard>
+
           <AnimatedCard delay={0.3} className="card action-card" onClick={() => navigate('/dashboard/uni-assessments')}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
