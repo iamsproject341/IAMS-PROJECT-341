@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useFocusRefresh } from '../hooks/useFocusRefresh';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { Plus, BookOpen, Calendar, ChevronDown, ChevronUp, Lock, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -34,6 +36,22 @@ export default function LogbookPage() {
     }
     // eslint-disable-next-line
   }, [user, role]);
+
+  // Keep in sync when coordinator approves placement or student returns to page
+  useFocusRefresh(
+    () => {
+      if (user && role === 'student') { checkMatch(); loadEntries(); }
+    },
+    { enabled: !!user && role === 'student' }
+  );
+
+  useRealtimeSync(
+    ['matches', 'logbooks'],
+    () => {
+      if (user && role === 'student') { checkMatch(); loadEntries(); }
+    },
+    { enabled: !!user && role === 'student' }
+  );
 
   async function checkMatch() {
     try {

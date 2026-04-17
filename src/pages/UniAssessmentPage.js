@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useFocusRefresh } from '../hooks/useFocusRefresh';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { School, User, Star, Plus, Calendar, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -30,6 +32,19 @@ export default function UniAssessmentPage() {
     else setLoading(false);
     // eslint-disable-next-line
   }, [user, role]);
+
+  // Re-fetch when the tab becomes visible (e.g., coordinator changed assignments in another tab)
+  useFocusRefresh(
+    () => { if (user && role === 'supervisor') loadData(); },
+    { enabled: !!user && role === 'supervisor' }
+  );
+
+  // Realtime: new match assignments or new assessments should show up immediately
+  useRealtimeSync(
+    ['matches', 'university_assessments'],
+    () => { if (user && role === 'supervisor') loadData(); },
+    { enabled: !!user && role === 'supervisor' }
+  );
 
   async function loadData() {
     try {

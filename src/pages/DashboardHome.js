@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { AnimatedCard, CountUp } from '../components/AnimatedCard';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import {
   GraduationCap, Building2, BookOpen, Shuffle,
   ArrowRight, CheckCircle2, Clock, AlertCircle, School,
@@ -19,7 +20,15 @@ export default function DashboardHome() {
 
   useEffect(() => { loadStats(); }, [role]); // eslint-disable-line
 
-  async function loadStats() {
+  // Realtime: keep dashboard counts + match info in sync with the database.
+  // Everyone gets it; the callback no-ops if the role doesn't care about a given table.
+  useRealtimeSync(
+    ['matches', 'logbooks', 'profiles', 'student_preferences', 'org_preferences', 'university_assessments'],
+    () => { loadStats(); },
+    { enabled: !!role }
+  );
+
+  const loadStats = useCallback(async () => {
     try {
       if (role === 'coordinator') {
         const [students, orgs, matches, logbooks] = await Promise.all([
@@ -78,7 +87,7 @@ export default function DashboardHome() {
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }
+  }, [role, user]);
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}><div className="spinner" /></div>;

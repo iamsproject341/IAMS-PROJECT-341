@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useFocusRefresh } from '../hooks/useFocusRefresh';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { BookOpen, User, Calendar, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 
 export default function LogbookViewerPage() {
@@ -19,6 +21,17 @@ export default function LogbookViewerPage() {
     if (user) loadStudents();
     // eslint-disable-next-line
   }, [user, role]);
+
+  useFocusRefresh(
+    () => { if (user) loadStudents(); },
+    { enabled: !!user }
+  );
+
+  useRealtimeSync(
+    ['matches', 'logbooks'],
+    () => { if (user) loadStudents(); },
+    { enabled: !!user }
+  );
 
   async function loadStudents() {
     try {

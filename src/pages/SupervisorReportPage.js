@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useFocusRefresh } from '../hooks/useFocusRefresh';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { ClipboardCheck, User, Star, CheckCircle2, Edit3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -31,6 +33,17 @@ export default function SupervisorReportPage() {
     else setLoading(false);
     // eslint-disable-next-line
   }, [user, role]);
+
+  useFocusRefresh(
+    () => { if (user && role === 'organization') loadData(); },
+    { enabled: !!user && role === 'organization' }
+  );
+
+  useRealtimeSync(
+    ['matches', 'supervisor_reports'],
+    () => { if (user && role === 'organization') loadData(); },
+    { enabled: !!user && role === 'organization' }
+  );
 
   async function loadData() {
     try {

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import {
   BarChart3, TrendingUp, Users, Building2, BookOpen, Award,
   CheckCircle2, Clock, XCircle, Download,
@@ -36,7 +37,14 @@ export default function AnalyticsPage() {
     // eslint-disable-next-line
   }, [user, role]);
 
-  async function loadAnalytics() {
+  // Realtime: anything that affects the numbers we display should trigger a refresh.
+  useRealtimeSync(
+    ['matches', 'logbooks', 'supervisor_reports', 'university_assessments', 'student_reports', 'profiles'],
+    () => { if (role === 'coordinator') loadAnalytics(); },
+    { enabled: !!user && role === 'coordinator' }
+  );
+
+  const loadAnalytics = useCallback(async () => {
     try {
       const [
         studentsRes, orgsRes, matchesRes, logbooksRes,
@@ -124,7 +132,7 @@ export default function AnalyticsPage() {
       toast.error('Failed to load analytics');
     }
     setLoading(false);
-  }
+  }, []);
 
   function exportCSV() {
     const rows = [

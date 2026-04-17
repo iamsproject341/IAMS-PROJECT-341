@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabase';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import {
   Shuffle, Check, X, Users, Award, Trash2, GraduationCap, Building2,
   MapPin, Briefcase, Zap, Lightbulb, ChevronDown, ChevronUp, School, UserCheck,
@@ -25,9 +26,10 @@ export default function MatchingPage() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line
   }, []);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setFetching(true);
     try {
       // Load all preferences + existing matches + supervisors using admin client
@@ -53,7 +55,15 @@ export default function MatchingPage() {
       console.error('Load error:', err);
     }
     setFetching(false);
-  }
+  }, []);
+
+  // Realtime: refresh whenever matches/prefs/profiles change (e.g., another coordinator,
+  // new preferences submitted, supervisor accounts added).
+  useRealtimeSync(
+    ['matches', 'student_preferences', 'org_preferences', 'profiles'],
+    () => { loadData(); },
+    { enabled: role === 'coordinator' }
+  );
 
   // ── Smart Matching Algorithm ──
   async function runMatching() {
@@ -68,6 +78,12 @@ export default function MatchingPage() {
       // Get already approved student IDs
       const approvedStudentIds = new Set(approvedMatches.filter(m => m.status === 'approved').map(m => m.student_id));
 
+      // Pairs that were already rejected — don't resurface these suggestions
+      const rejectedPairKey = new Set(
+        approvedMatches.filter(m => m.status === 'rejected')
+          .map(m => m.student_id + '::' + m.org_id)
+      );
+
       // Score ALL possible pairs
       const allPairs = [];
       for (const sp of studentPrefs) {
@@ -75,6 +91,9 @@ export default function MatchingPage() {
         if (approvedStudentIds.has(sp.student?.id)) continue;
 
         for (const op of orgPrefs) {
+          // Skip pairs the coordinator has already explicitly rejected
+          if (rejectedPairKey.has(sp.student?.id + '::' + op.org?.id)) continue;
+
           let score = 0;
           const studentSkills = sp.skills || [];
           const orgSkills = op.desired_skills || [];
@@ -183,13 +202,33 @@ export default function MatchingPage() {
   }
 
   // ── Reject ──
-  // Dismisses a suggested pairing from the current results list without
-  // writing to the matches table. The student + org stay eligible so the
-  // next run of the algorithm can re-pair them with someone else.
+  // Writes a rejected match to the database so the rejection shows up in
+  // analytics. The student + org stay eligible for future matching because
+  // the matching algorithm skips only students with an *approved* match.
   async function rejectMatch(pair) {
     if (!window.confirm('Reject this suggested match? ' + pair.student_name + ' and ' + pair.org_name + ' will remain available for future matching.')) return;
-    setResults(prev => prev.filter(r => !(r.student_id === pair.student_id && r.org_id === pair.org_id)));
-    toast.success('Rejected: ' + pair.student_name + ' → ' + pair.org_name);
+    try {
+      // Upsert in case a previous row exists for this (student, org) pair.
+      const { error } = await supabaseAdmin.from('matches').upsert({
+        student_id: pair.student_id,
+        org_id: pair.org_id,
+        score: pair.score,
+        status: 'rejected',
+      }, { onConflict: 'student_id,org_id' });
+      if (error) throw error;
+
+      setResults(prev => prev.filter(r => !(r.student_id === pair.student_id && r.org_id === pair.org_id)));
+      toast.success('Rejected: ' + pair.student_name + ' → ' + pair.org_name);
+
+      // Reload approved matches list so rejected ones are counted everywhere
+      const { data } = await supabaseAdmin.from('matches')
+        .select('*, student:profiles!matches_student_id_fkey(full_name, email), org:profiles!matches_org_id_fkey(full_name, email), supervisor:profiles!matches_supervisor_id_fkey(id, full_name, email)')
+        .order('score', { ascending: false });
+      setApprovedMatches(data || []);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Failed to reject');
+    }
   }
 
   // ── Remove ──

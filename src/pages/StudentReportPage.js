@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useFocusRefresh } from '../hooks/useFocusRefresh';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { FileText, Upload, Download, CheckCircle2, Lock, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -25,6 +27,17 @@ export default function StudentReportPage() {
     else setLoading(false);
     // eslint-disable-next-line
   }, [user, role]);
+
+  useFocusRefresh(
+    () => { if (user && role === 'student') loadData(); },
+    { enabled: !!user && role === 'student' }
+  );
+
+  useRealtimeSync(
+    ['student_reports', 'matches'],
+    () => { if (user && role === 'student') loadData(); },
+    { enabled: !!user && role === 'student' }
+  );
 
   async function loadData() {
     try {

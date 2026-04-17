@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useFocusRefresh } from '../hooks/useFocusRefresh';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { Save, CheckCircle2, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -34,6 +36,17 @@ export default function OrgPreferences() {
   const [hasMatches, setHasMatches] = useState(false);
 
   useEffect(() => { loadPrefs(); checkMatches(); }, []); // eslint-disable-line
+
+  useFocusRefresh(
+    () => { if (user) { loadPrefs(); checkMatches(); } },
+    { enabled: !!user }
+  );
+
+  useRealtimeSync(
+    ['matches', 'org_preferences'],
+    () => { if (user) { loadPrefs(); checkMatches(); } },
+    { enabled: !!user }
+  );
 
   async function checkMatches() {
     try {
