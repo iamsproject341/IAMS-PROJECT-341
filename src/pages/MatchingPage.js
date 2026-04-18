@@ -163,6 +163,38 @@ export default function MatchingPage() {
       }
 
       setResults(finalMatches);
+
+      // Persist suggestions as 'pending' rows so they're counted in Analytics.
+      // We only ever touch pending rows here — approved/rejected rows are left alone.
+      // Strategy:
+      //   1. Delete all existing pending rows (stale suggestions from a previous run).
+      //   2. Insert the new suggestions as pending.
+      // The matching algorithm above already skips pairs with an existing approved
+      // or rejected row, so finalMatches never collides with those.
+      try {
+        await supabaseAdmin.from('matches').delete().eq('status', 'pending');
+
+        if (finalMatches.length > 0) {
+          const pendingRows = finalMatches.map(p => ({
+            student_id: p.student_id,
+            org_id: p.org_id,
+            score: p.score,
+            status: 'pending',
+          }));
+          const { error: insErr } = await supabaseAdmin.from('matches').insert(pendingRows);
+          if (insErr) throw insErr;
+        }
+
+        // Refresh local approvedMatches so Pending count here stays consistent too
+        const { data: refreshed } = await supabaseAdmin.from('matches')
+          .select('*, student:profiles!matches_student_id_fkey(full_name, email), org:profiles!matches_org_id_fkey(full_name, email), supervisor:profiles!matches_supervisor_id_fkey(id, full_name, email)')
+          .order('score', { ascending: false });
+        setApprovedMatches(refreshed || []);
+      } catch (persistErr) {
+        // Non-fatal: suggestions still shown in the UI, just not counted in Analytics
+        console.error('Failed to persist pending matches:', persistErr);
+      }
+
       if (finalMatches.length > 0) {
         toast.success('Found ' + finalMatches.length + ' optimal match' + (finalMatches.length > 1 ? 'es' : '') + '!');
       } else {
@@ -178,12 +210,15 @@ export default function MatchingPage() {
   // ── Approve ──
   async function approveMatch(pair) {
     try {
-      const { error } = await supabaseAdmin.from('matches').insert({
+      // Upsert — a pending row for this pair already exists (created by runMatching).
+      // Upserting with onConflict turns that pending row into an approved one.
+      // Also handles the edge case of no existing row (falls back to insert).
+      const { error } = await supabaseAdmin.from('matches').upsert({
         student_id: pair.student_id,
         org_id: pair.org_id,
         score: pair.score,
         status: 'approved',
-      });
+      }, { onConflict: 'student_id,org_id' });
       if (error) throw error;
 
       toast.success('Approved: ' + pair.student_name + ' → ' + pair.org_name);
@@ -208,7 +243,15 @@ export default function MatchingPage() {
   async function rejectMatch(pair) {
     if (!window.confirm('Reject this suggested match? ' + pair.student_name + ' and ' + pair.org_name + ' will remain available for future matching.')) return;
     try {
-      // Upsert in case a previous row exists for this (student, org) pair.
+      // Safety: never downgrade an already-approved placement to rejected.
+      // Only act on rows that are currently pending (or non-existent).
+      const existing = approvedMatches.find(m => m.student_id === pair.student_id && m.org_id === pair.org_id);
+      if (existing && existing.status === 'approved') {
+        toast.error('This match is already approved. Remove it from the Approved tab instead.');
+        return;
+      }
+
+      // Upsert flips the existing pending row (if any) to rejected.
       const { error } = await supabaseAdmin.from('matches').upsert({
         student_id: pair.student_id,
         org_id: pair.org_id,
