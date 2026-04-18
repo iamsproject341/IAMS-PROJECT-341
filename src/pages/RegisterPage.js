@@ -94,7 +94,7 @@ export default function RegisterPage() {
                 placeholder="e.g. 202103579 (9 digits)" value={studentId}
                 onChange={(e) => handleStudentIdChange(e.target.value)} />
               {errors.studentId && <div className="form-error">{errors.studentId}</div>}
-              {!errors.studentId && !studentId && <div className="form-hint">Enter your 9-digit university student ID (digits only).</div>}
+              {!errors.studentId && !studentId && <div className="form-hint">Format: year of enrollment + 5 digits (e.g. 202103579).</div>}
               {!errors.studentId && studentId && <div className="form-hint">{studentId.length}/9 digits</div>}
             </div>
             <div className="form-group">
