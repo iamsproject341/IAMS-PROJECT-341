@@ -30,10 +30,39 @@ export function validatePhone(value, required = false) {
   return '';
 }
 
-// 9-digit student ID
+// 9-digit student ID — format: YYYY + 5 digits (e.g. 202103579).
+// Year must be within a sensible range (1990 .. current year).
+// Rejects all-zeros, all-same-digit suffixes (e.g. 00000, 11111), and
+// suspicious sequential suffixes like 12345 / 54321.
 export function validateStudentId(value) {
   if (!value || !value.trim()) return 'Student ID is required';
-  if (!/^\d{9}$/.test(value.trim())) return 'Student ID must be exactly 9 digits';
+  const v = value.trim();
+
+  if (!/^\d{9}$/.test(v)) return 'Student ID must be exactly 9 digits';
+
+  // Block obvious junk like 000000000 or 123456789
+  if (/^(\d)\1{8}$/.test(v)) return 'Student ID cannot be all the same digit';
+
+  const year = parseInt(v.slice(0, 4), 10);
+  const suffix = v.slice(4); // 5 digits
+
+  const currentYear = new Date().getFullYear();
+  if (year < 1990 || year > currentYear) {
+    return `Student ID must start with a valid year between 1990 and ${currentYear}`;
+  }
+
+  // Suffix cannot be all zeros or all the same digit
+  if (/^(\d)\1{4}$/.test(suffix)) {
+    return 'Student ID suffix cannot be all zeros or all the same digit';
+  }
+
+  // Block trivially sequential suffixes (12345, 54321, 01234, etc.)
+  const ascending = '0123456789';
+  const descending = '9876543210';
+  if (ascending.includes(suffix) || descending.includes(suffix)) {
+    return 'Student ID suffix looks invalid — use your real ID';
+  }
+
   return '';
 }
 
