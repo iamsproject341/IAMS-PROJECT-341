@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { notifyStudentReportSubmitted } from '../lib/notify';
 import { useFocusRefresh } from '../hooks/useFocusRefresh';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { FileText, Upload, Download, CheckCircle2, Lock, Trash2 } from 'lucide-react';
@@ -119,6 +120,17 @@ export default function StudentReportPage() {
       }, { onConflict: 'student_id' });
       if (error) throw error;
       toast.success(report ? 'Report updated' : 'Report submitted successfully!');
+
+      // Notify the student's supervisor (if any) and all coordinators —
+      // but only on first submission, not on updates (avoids spam when a
+      // student tweaks their file multiple times).
+      if (!report) {
+        notifyStudentReportSubmitted({
+          studentName: profile?.full_name || 'A student',
+          supervisorId: match?.supervisor_id || null,
+        });
+      }
+
       setFile(null);
       loadData();
     } catch (err) {

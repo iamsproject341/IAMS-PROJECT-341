@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { notifySupervisorReportSubmitted } from '../lib/notify';
 import { useFocusRefresh } from '../hooks/useFocusRefresh';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { ClipboardCheck, User, Star, CheckCircle2, Edit3 } from 'lucide-react';
@@ -132,6 +133,14 @@ export default function SupervisorReportPage() {
         .upsert(payload, { onConflict: 'supervisor_id,student_id' });
       if (error) throw error;
       toast.success('Report submitted successfully');
+
+      // Notify the student and all coordinators.
+      notifySupervisorReportSubmitted({
+        studentId: selectedStudent.id,
+        orgName: profile?.full_name || 'The organization',
+        score,
+      });
+
       setSelectedStudent(null);
       loadData();
     } catch (err) {

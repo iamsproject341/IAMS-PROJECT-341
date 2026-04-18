@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { notifyLogbookSubmitted } from '../lib/notify';
 import { useFocusRefresh } from '../hooks/useFocusRefresh';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { Plus, BookOpen, Calendar, ChevronDown, ChevronUp, Lock, Building2 } from 'lucide-react';
@@ -122,6 +123,16 @@ export default function LogbookPage() {
       });
       if (error) throw error;
       toast.success('Logbook entry submitted!');
+
+      // Notify the student's supervisor (if any) and all coordinators.
+      // Fire-and-forget — failure here should not block the submission.
+      notifyLogbookSubmitted({
+        studentId: user.id,
+        studentName: profile?.full_name || 'A student',
+        supervisorId: match?.supervisor_id || null,
+        weekNumber: parseInt(weekNumber, 10),
+      });
+
       resetForm();
       loadEntries();
     } catch (err) {

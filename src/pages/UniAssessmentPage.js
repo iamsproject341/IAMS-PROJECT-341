@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { notifyUniAssessmentSubmitted } from '../lib/notify';
 import { useFocusRefresh } from '../hooks/useFocusRefresh';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import { School, User, Star, Plus, Calendar, Building2 } from 'lucide-react';
@@ -114,6 +115,14 @@ export default function UniAssessmentPage() {
       });
       if (error) throw error;
       toast.success('Assessment recorded');
+
+      // Notify the student and all coordinators.
+      notifyUniAssessmentSubmitted({
+        studentId,
+        supervisorName: profile?.full_name || 'Your supervisor',
+        score,
+      });
+
       resetForm();
       loadData();
     } catch (err) {

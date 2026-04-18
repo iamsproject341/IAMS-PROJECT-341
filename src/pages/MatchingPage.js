@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabase';
+import { notifyMatchApproved, notifySupervisorAssigned } from '../lib/notify';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import {
   Shuffle, Check, X, Users, Award, Trash2, GraduationCap, Building2,
@@ -223,6 +224,15 @@ export default function MatchingPage() {
 
       toast.success('Approved: ' + pair.student_name + ' → ' + pair.org_name);
 
+      // Notify the student and the organization that the match is now active.
+      // Fire-and-forget — failure here should not block the approval.
+      notifyMatchApproved({
+        studentId: pair.student_id,
+        studentName: pair.student_name,
+        orgId: pair.org_id,
+        orgName: pair.org_name,
+      });
+
       // Remove from results in real time
       setResults(prev => prev.filter(r => r.student_id !== pair.student_id));
 
@@ -291,6 +301,13 @@ export default function MatchingPage() {
     setAssigning(prev => ({ ...prev, [matchId]: true }));
     try {
       const newId = supervisorId || null;
+
+      // Find the match record before updating so we know the previous
+      // supervisor (don't re-notify if the value didn't change) and so
+      // we have the student/org ids needed for notifications.
+      const matchRow = approvedMatches.find(m => m.id === matchId);
+      const previousSupId = matchRow?.supervisor_id || null;
+
       const { error } = await supabaseAdmin
         .from('matches')
         .update({ supervisor_id: newId })
@@ -305,6 +322,19 @@ export default function MatchingPage() {
           : m
       ));
       toast.success(newId ? 'Supervisor assigned' : 'Supervisor cleared');
+
+      // Only fire a notification when the supervisor actually changed
+      // AND a new supervisor was assigned (clearing doesn't notify anyone).
+      if (newId && newId !== previousSupId && matchRow) {
+        notifySupervisorAssigned({
+          studentId: matchRow.student_id,
+          studentName: matchRow.student?.full_name || 'Student',
+          supervisorId: newId,
+          supervisorName: sup?.full_name || 'Supervisor',
+          orgId: matchRow.org_id,
+          orgName: matchRow.org?.full_name || 'Organization',
+        });
+      }
     } catch (err) {
       console.error(err);
       toast.error(err.message || 'Failed to assign supervisor');
