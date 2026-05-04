@@ -19,6 +19,7 @@ import AdminPage from './pages/AdminPage';
 import SupervisorReportPage from './pages/SupervisorReportPage';
 import UniAssessmentPage from './pages/UniAssessmentPage';
 import StudentReportPage from './pages/StudentReportPage';
+import StudentFeedbackPage from './pages/StudentFeedbackPage';
 import LogbookViewerPage from './pages/LogbookViewerPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 
@@ -84,6 +85,7 @@ function App() {
             <Route path="supervisor-report" element={<SupervisorReportPage />} />
             <Route path="uni-assessments" element={<UniAssessmentPage />} />
             <Route path="final-report" element={<StudentReportPage />} />
+            <Route path="supervisor-feedback" element={<StudentFeedbackPage />} />
             <Route path="student-logbooks" element={<LogbookViewerPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
           </Route>
