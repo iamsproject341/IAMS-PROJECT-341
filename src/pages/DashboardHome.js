@@ -6,7 +6,7 @@ import { AnimatedCard, CountUp } from '../components/AnimatedCard';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
 import {
   GraduationCap, Building2, BookOpen, Shuffle,
-  ArrowRight, CheckCircle2, Clock, AlertCircle, School,
+  ArrowRight, CheckCircle2, Clock, AlertCircle, School, ClipboardList,
 } from 'lucide-react';
 
 export default function DashboardHome() {
@@ -203,6 +203,15 @@ export default function DashboardHome() {
                   )}
                 </div>
               </div>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: 16, justifyContent: 'center' }}
+                onClick={() => navigate('/dashboard/supervisor-feedback')}
+              >
+                <ClipboardList size={18} /> View supervisor feedback &amp; downloads
+              </button>
             </AnimatedCard>
           )}
           {!stats.prefsSet && (
