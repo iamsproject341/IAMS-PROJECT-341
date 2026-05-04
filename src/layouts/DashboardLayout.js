@@ -7,7 +7,7 @@ import PageTransition from '../components/PageTransition';
 import {
   LayoutDashboard, Settings, LogOut, BookOpen, Users, Shuffle,
   Menu, X, GraduationCap, Building2, UserPlus, Sun, Moon,
-  ClipboardCheck, FileText, School, BarChart3, FolderOpen,
+  ClipboardCheck, ClipboardList, FileText, School, BarChart3, FolderOpen,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import NotificationBell from '../components/NotificationBell';
@@ -36,6 +36,7 @@ export default function DashboardLayout() {
       { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { path: '/dashboard/preferences', label: 'My Preferences', icon: Settings },
       { path: '/dashboard/logbook', label: 'Logbook', icon: BookOpen },
+      { path: '/dashboard/supervisor-feedback', label: 'Supervisor Feedback', icon: ClipboardList },
       { path: '/dashboard/final-report', label: 'Final Report', icon: FileText },
       { path: '/dashboard/profile', label: 'Profile', icon: GraduationCap },
     ],
